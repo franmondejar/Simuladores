@@ -8,7 +8,7 @@ Repositorio: https://github.com/franmondejar/Simuladores
 
 💡 Descripción general
 
-Laboratorio de simuladores interactivos de Economía diseñados para la docencia y uso educativo.  
+Laboratorio de simuladores interactivos de Economía diseñados para la docencia y uso educativo, enfocados a los niveles de ESO y Bachillerato.  
 Comprende esta ciencia interactuando con datos reales, a través de herramientas visuales y dinámicas que permiten experimentar con los conceptos clave de la Economía de Empresa y la Economía General.
 
 Cada simulador está orientado a la comprensión aplicada de los contenidos, fomentando el aprendizaje activo mediante la manipulación de variables reales y la observación de sus efectos gráficos y numéricos.
