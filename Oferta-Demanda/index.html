@@ -1,0 +1,3530 @@
+<!--
+╔═══════════════════════════════════════════════════════════════╗
+║  SIMULADOR DE OFERTA Y DEMANDA (versión estable y validada)   ║
+╠═══════════════════════════════════════════════════════════════╣
+║  Desarrollado por: Francisco Mondéjar                         ║
+║  Concepto base: "Complemento Simulador"                       ║
+║  Características:                                             ║
+║   • Enfocado a niveles de ESO y Bachillerato.                 ║
+║   • Cálculos en tiempo real con representación gráfica.       ║
+║   • Áreas sombreadas de excedentes, PIE, Ganancia,recaudación.║
+║   • Módulos independientes con análisis didáctico.            ║
+║   • Exportación de informe (texto, CSV, imagen).              ║
+║   • Campos de identificación (proyecto, alumno, fecha).       ║
+║   • Licencia: Creative Commons BY-SA 4.0                      ║
+║                                                               ║
+║  Autoría: Francisco Mondéjar – CC BY-SA 4.0 (2026)            ║
+╚═══════════════════════════════════════════════════════════════╝
+-->
+
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Laboratorio de Simuladores – Oferta y Demanda (Fases 1–3)</title>
+
+<style>
+  *{ box-sizing:border-box; }
+
+  body{
+    font-family: system-ui, sans-serif;
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 1.5rem;
+    border: 1px solid #e0d8c8;
+    border-radius: 12px;
+    background: #fdf6e3;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    animation: fadeIn 1s ease;
+  }
+
+  h2{ margin: 0 0 10px 0; }
+
+  /* ===== NAV (tabs) ===== */
+  .labNav{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin: 10px 0 16px;
+  }
+  .tabBtn{
+    padding:10px 14px;
+    border-radius: 14px;
+    border:1px solid #b5b5b5;
+    background:#f7f7f7;
+    cursor:pointer;
+    font-weight:800;
+  }
+  .tabBtn.active{
+    outline: 2px solid rgba(0,0,0,0.15);
+    background:#eceae6;
+  }
+
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  .wrap{
+    display:grid;
+    grid-template-columns: 560px minmax(0,1fr);
+    gap: 22px;
+    align-items:start;
+  }
+
+  fieldset{
+    border:1px solid #cfcfcf;
+    border-radius:14px;
+    padding:14px;
+    background:#eceae6;
+  }
+  legend{ font-weight:700; padding:0 6px; }
+
+  label{
+    display:grid;
+    grid-template-columns: 1fr 170px;
+    gap:10px;
+    margin:10px 0;
+    align-items:center;
+  }
+
+  input, select{
+    width:100%;
+    padding:6px 8px;
+    border:1px solid #b9b9b9;
+    border-radius:6px;
+    background:#fff;
+  }
+
+  input[readonly]{
+    background:#e6e6e6;
+    font-style:italic;
+  }
+
+  .card{
+    border:1px solid #d3d3d3;
+    border-radius:12px;
+    padding:12px;
+    margin-top:12px;
+    background:#e9e7e3;
+  }
+
+  .row2tight{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:8px;
+  }
+
+  .hint{ font-size:13px; color:#555; margin-top:6px; }
+  .mono{ font-family:ui-monospace, Menlo, Consolas, monospace; white-space:pre-line; }
+
+  .formulaWrap{
+    border:1px solid #d3d3d3;
+    border-radius:12px;
+    padding:10px 12px;
+    margin:8px 0 12px;
+    background:#e9e7e3;
+  }
+
+  .formula{
+    font-family:"Times New Roman", Times, serif;
+    font-style:italic;
+    font-size:44px;
+    white-space:nowrap;
+  }
+  .formula sup,.formula sub{ font-size:60%; }
+
+  .graphCard{
+    border:1px solid #cfcfcf;
+    border-radius:14px;
+    background:#eceae6;
+    padding:14px;
+    margin-top: 200px;
+  }
+
+  canvas{
+    width:100%;
+    height:520px;
+    border:1px solid #bfbfbf;
+    border-radius:12px;
+    display:block;
+    background:#f7f6f3;
+  }
+
+  .btnRow{ display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; }
+  button{
+    padding:8px 12px;
+    border-radius:12px;
+    border:1px solid #b5b5b5;
+    background:#f7f7f7;
+    cursor:pointer;
+  }
+
+  @media(max-width:1250px){
+    .wrap{ grid-template-columns: 1fr; }
+    canvas{ height:480px; }
+    .formula{ font-size:38px; }
+    .graphCard{ margin-top: 0; }
+  }
+
+  /* ===== PALANCAS RÁPIDAS ===== */
+  .quickBox{
+    border:1px solid #d3d3d3;
+    border-radius:40px;
+    padding:18px 18px 22px;
+    background:#e9e7e3;
+    margin-top:12px;
+  }
+
+  .quickHeader{
+    text-align:center;
+    font-weight:800;
+    font-size:18px;
+    margin:6px 0 14px;
+  }
+
+  .quickGrid{
+    display:grid;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    gap:18px;
+  }
+
+  .quickCard{
+    border:1px solid #bfbfbf;
+    border-radius:26px;
+    background:#efeeeb;
+    padding:16px 16px 14px;
+    min-height:210px;
+  }
+
+  .quickTitle{
+    font-weight:800;
+    text-align:center;
+    font-size:18px;
+    margin:2px 0 12px;
+  }
+
+  .quickRow{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap:10px;
+    margin:10px 0 12px;
+  }
+
+  .quickRow label{
+    grid-template-columns: 1fr;
+    margin:0;
+  }
+
+  .quickLegend{
+    margin-top:8px;
+    font-size:16px;
+    font-weight:650;
+    line-height:1.55;
+  }
+
+  .quickLegend .muted{
+    font-weight:700;
+    margin-bottom:8px;
+    display:block;
+  }
+
+  .quickLegend .item{
+    display:block;
+    margin:8px 0;
+  }
+
+  .quickLegend .mini{
+    font-weight:650;
+    display:block;
+    margin-left:18px;
+  }
+
+  .quickLegend .arrow{
+    font-weight:900;
+  }
+
+  @media(max-width:1250px){
+    .quickGrid{ grid-template-columns: 1fr; }
+    .quickCard{ min-height:unset; }
+  }
+
+  sub { font-size: 70%; vertical-align: -0.25em; }
+
+  /* ===== Modelo numérico – alineación ===== */
+  .numCard{ padding:16px; }
+
+  .numRow{
+    display:grid;
+    grid-template-columns: 32px 160px;
+    align-items:center;
+    gap:12px;
+    margin:12px 0;
+  }
+
+  .numLbl{ font-weight:700; font-size:15px; }
+  .numInp{ width:160px; padding:6px 8px; }
+
+  /* ===== Equilibrio layout ===== */
+  .eqTop{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap:12px;
+  }
+  .eqBadge{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin-top:8px;
+  }
+  .pill{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 12px;
+    border-radius:999px;
+    border:1px solid rgba(0,0,0,0.12);
+    background:#efeeeb;
+    font-weight:800;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .policyNote{
+    margin-top:6px;
+    padding:6px 10px;
+    border:1px dashed rgba(0,0,0,0.25);
+    border-radius:10px;
+    background:rgba(255,255,255,0.6);
+    font-weight:600;              /* negrita suave */
+    font-size:0.9rem;
+  }
+
+  .legend-swatch{
+    display:inline-block;
+    width:10px;
+    height:10px;
+    border-radius:2px;
+    vertical-align:middle;
+    border:1px solid rgba(0,0,0,0.25);
+    margin-left:6px; /* separación respecto al texto */
+  }
+
+  .sw-ec  { background:#1f6eff; }
+  .sw-ep  { background:#1a7f37; }
+  .sw-pie { background:#c80000; }
+  .sw-ip  { background:#505050; }
+
+  .brandRow{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:14px;
+    margin: 8px 0 14px;
+    padding: 10px 12px;
+    border:1px solid #d3d3d3;
+    border-radius:14px;
+    background:#efece6;
+  }
+
+  .brandLeft{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    min-width:0;
+  }
+
+  #brandLogo{
+    width:54px;
+    height:54px;
+    object-fit:contain;
+    border-radius:12px;
+    border:1px solid rgba(0,0,0,0.10);
+    background:#fff;
+  }
+
+  .licenseLogo{
+    width:60px;        /* ajusta aquí el tamaño */
+    height:auto;
+    opacity:0.9;
+    transition:0.2s ease;
+  }
+
+  .licenseLogo:hover{
+    opacity:1;
+    transform:scale(1.05);
+  }
+
+  .brandText{ min-width:0; }
+  .brandTitle{
+    font-weight:900;
+    font-size:15px;
+    line-height:1.1;
+  }
+  .brandSub{
+    font-size:12.5px;
+    color:#444;
+    margin-top:4px;
+    font-weight:650;
+  }
+
+  .brandRight{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .brandLink{
+    font-weight:900;
+    font-size:12px;
+    padding:8px 10px;
+    border-radius:999px;
+    border:1px solid rgba(0,0,0,0.18);
+    background:#f7f7f7;
+    color:#111;
+    text-decoration:none;
+  }
+  .brandLink:hover{ filter:brightness(0.98); }
+
+</style>
+</head>
+
+<body>
+<h2>Laboratorio de Simuladores – Oferta y Demanda</h2>
+
+<div class="brandRow">
+  <div class="brandLeft">
+    <img id="brandLogo" src="img/logo.png" alt="Logo" />
+    <div class="brandText">
+      <div class="brandTitle">Laboratorio de Simuladores – Oferta y Demanda</div>
+      <div class="brandSub">Licencia CC BY-SA 4.0 · Autoría: Francisco Mondéjar</div>
+    </div>
+  </div>
+
+  <div class="brandRight">
+     <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank">
+      <img src="img/licencia.png" alt="Licencia CC BY-SA 4.0" class="licenseLogo">
+    </a>
+  </div>
+</div>
+
+<div class="labNav">
+  <button class="tabBtn active" data-view="view-demand">Demanda</button>
+  <button class="tabBtn" data-view="view-supply">Oferta</button>
+  <button class="tabBtn" data-view="view-eq">Equilibrio</button>
+</div>
+
+<!-- =========================
+     VISTA 1: DEMANDA
+========================== -->
+<section id="view-demand" class="view active">
+  <div class="wrap">
+
+    <!-- PANEL IZQUIERDO -->
+    <div>
+      <fieldset>
+        <legend>Demanda</legend>
+
+        <div class="formulaWrap">
+          <div class="formula">
+            Q<sup>d</sup><sub>x</sub> = a − bP<sub>x</sub> + ΔQ<sup>d</sup><sub>x</sub>
+          </div>
+        </div>
+
+        <label>a <input id="aD" type="number" step="1" placeholder=""></label>
+        <label>b <input id="bD" type="number" step="0.1" placeholder=""></label>
+
+        <label>α = 1 / b
+          <input id="alphaD" type="text" readonly value="—">
+        </label>
+
+        <div class="quickBox">
+          <div class="quickHeader">Palancas rápidas</div>
+
+          <div class="quickGrid">
+
+            <!-- TARJETA 1: Precio de otros bienes (Y) -->
+            <div class="quickCard">
+              <div class="quickTitle">Precio de otros bienes (Y)</div>
+
+              <div class="quickRow">
+                <label>
+                  <select id="relatedQuickD">
+                    <option value="0">Sin cambio</option>
+                    <option value="20">Sustitutivo</option>
+                    <option value="-20">Complementario</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="quickLegend">
+                <span class="muted">Sin cambio</span>
+
+                <span class="item"><b>Sustitutivo:</b>
+                  <span class="mini"><span class="arrow">↑</span>Py → <span class="arrow">↑</span>Qx</span>
+                  <span class="mini"><span class="arrow">↓</span>Py → <span class="arrow">↓</span>Qx</span>
+                </span>
+
+                <span class="item"><b>Complementario:</b>
+                  <span class="mini"><span class="arrow">↑</span>Py → <span class="arrow">↓</span>Qx</span>
+                  <span class="mini"><span class="arrow">↓</span>Py → <span class="arrow">↑</span>Qx</span>
+                </span>
+              </div>
+            </div>
+
+            <!-- TARJETA 2: Renta (R) -->
+            <div class="quickCard">
+              <div class="quickTitle">Renta (R)</div>
+
+              <div class="quickRow">
+                <label>
+                  <select id="incomeQuickD">
+                    <option value="0">Sin cambio</option>
+                    <option value="30">↑R</option>
+                    <option value="-30">↓R</option>
+                  </select>
+                </label>
+
+                <label>
+                  <select id="goodTypeD">
+                    <option value="normal">Normal</option>
+                    <option value="inferior">Inferior</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="quickLegend">
+                <span class="muted">Sin cambio</span>
+
+                <span class="item"><b>Normal:</b>
+                  <span class="mini"><span class="arrow">↑</span>R → <span class="arrow">↑</span>Qx</span>
+                  <span class="mini"><span class="arrow">↓</span>R → <span class="arrow">↓</span>Qx</span>
+                </span>
+
+                <span class="item"><b>Inferior:</b>
+                  <span class="mini"><span class="arrow">↑</span>R → <span class="arrow">↓</span>Qx</span>
+                  <span class="mini"><span class="arrow">↓</span>R → <span class="arrow">↑</span>Qx</span>
+                </span>
+              </div>
+            </div>
+
+            <!-- TARJETA 3: Gustos + Expectativas -->
+            <div class="quickCard">
+              <div class="quickTitle">Gustos</div>
+
+              <div class="quickRow">
+                <label>
+                  <select id="tastesQuickD">
+                    <option value="0">Sin cambio</option>
+                    <option value="8">Mejoran</option>
+                    <option value="-8">Empeoran</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="quickTitle" style="margin-top:10px;">Expectativas</div>
+
+              <div class="quickRow">
+                <label>
+                  <select id="expectQuickD">
+                    <option value="0">Sin cambio</option>
+                    <option value="6">Mejoran</option>
+                    <option value="-6">Empeoran</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="card">
+          <strong>Modelo numérico (ΔQd)</strong>
+
+          <div class="row2tight">
+            <div class="card" style="margin-top:10px;">
+              <strong>Renta</strong>
+              <label>ΔY
+                <input id="dYD" type="number" step="0.1" placeholder="">
+              </label>
+              <label>k
+                <input id="kYD" type="number" step="0.1" value="" style="width:120px;">
+              </label>
+            </div>
+
+            <div class="card numCard" style="margin-top:10px;">
+              <strong>Otro bien</strong>
+
+              <div class="numRow">
+                <span class="numLbl">ΔP<sub>y</sub></span>
+                <input id="PotherD" type="number" step="0.1" placeholder="" class="numInp">
+              </div>
+
+              <div class="numRow">
+                <span class="numLbl">k</span>
+                <input id="kOtherD" type="number" step="0.1" value="" class="numInp">
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div><strong>Desglose ΔQd</strong></div>
+            <div class="mono" id="dqBreakD">—</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div><strong>ΔQd total (usado en la curva)</strong></div>
+          <div class="mono" id="dqD">ΔQd = 0</div>
+          <div class="hint" id="readD">Introduce a y b para activar la curva.</div>
+
+          <div class="btnRow">
+            <button id="resetD" type="button">Reset Demanda</button>
+          </div>
+        </div>
+
+      </fieldset>
+    </div>
+
+    <!-- PANEL DERECHO -->
+    <div class="graphCard">
+      <canvas id="cvD" width="1020" height="620"></canvas>
+      <div class="hint">
+        Base continua (azul) · Nueva punteada (azul) · Números solo en cortes · Curva recortada en Q=0.
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- =========================
+     VISTA 2: OFERTA
+     (c SIN signo fijo: Qs = c + dP + ΔQs)
+========================== -->
+<section id="view-supply" class="view">
+  <div class="wrap">
+
+    <!-- PANEL IZQUIERDO -->
+    <div>
+      <fieldset>
+        <legend>Oferta</legend>
+
+        <div class="formulaWrap">
+          <div class="formula">
+            Q<sup>s</sup><sub>x</sub> = -c + dP<sub>x</sub> + ΔQ<sup>s</sup><sub>x</sub>
+          </div>
+        </div>
+
+        <label>c <input id="cS" type="number" step="1" placeholder=""></label>
+        <label>d <input id="dS" type="number" step="0.1" placeholder=""></label>
+
+        <label>β = 1 / d
+          <input id="betaS" type="text" readonly value="—">
+        </label>
+
+        <div class="quickBox">
+          <div class="quickHeader">Palancas rápidas</div>
+
+          <div class="quickGrid">
+
+            <!-- TARJETA 1: Costes -->
+            <div class="quickCard">
+              <div class="quickTitle">Costes (C)</div>
+
+              <div class="quickRow">
+                <label>
+                  <select id="costQuickS">
+                    <option value="0">Sin cambio</option>
+                    <option value="-25">↑C (suben costes)</option>
+                    <option value="25">↓C (bajan costes)</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="quickLegend">
+                <span class="muted">Sin cambio</span>
+                <span class="item"><b>Suben costes:</b>
+                  <span class="mini"><span class="arrow">↑</span>C → <span class="arrow">↓</span>Qs (izquierda)</span>
+                </span>
+                <span class="item"><b>Bajan costes:</b>
+                  <span class="mini"><span class="arrow">↓</span>C → <span class="arrow">↑</span>Qs (derecha)</span>
+                </span>
+              </div>
+            </div>
+
+            <!-- TARJETA 2: Tecnología -->
+            <div class="quickCard">
+              <div class="quickTitle">Tecnología (T)</div>
+
+              <div class="quickRow">
+                <label>
+                  <select id="techQuickS">
+                    <option value="0">Sin cambio</option>
+                    <option value="18">Mejora</option>
+                    <option value="-18">Empeora</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="quickLegend">
+                <span class="muted">Sin cambio</span>
+                <span class="item"><b>Mejora:</b>
+                  <span class="mini"><span class="arrow">↑</span>T → <span class="arrow">↑</span>Qs (derecha)</span>
+                </span>
+                <span class="item"><b>Empeora:</b>
+                  <span class="mini"><span class="arrow">↓</span>T → <span class="arrow">↓</span>Qs (izquierda)</span>
+                </span>
+              </div>
+            </div>
+
+            <!-- TARJETA 3: Nº oferentes + Expectativas -->
+            <div class="quickCard">
+              <div class="quickTitle">Nº oferentes (N)</div>
+
+              <div class="quickRow">
+                <label>
+                  <select id="sellersQuickS">
+                    <option value="0">Sin cambio</option>
+                    <option value="14">↑N</option>
+                    <option value="-14">↓N</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="quickTitle" style="margin-top:10px;">Expectativas (P futuro)</div>
+
+              <div class="quickRow">
+                <label>
+                  <select id="expectQuickS">
+                    <option value="0">Sin cambio</option>
+                    <option value="-10">↑P futuro (retienen)</option>
+                    <option value="10">↓P futuro (venden hoy)</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="card">
+          <strong>Modelo numérico (ΔQs)</strong>
+
+          <div class="row2tight">
+            <div class="card" style="margin-top:10px;">
+              <strong>Costes</strong>
+              <label>ΔC
+                <input id="dCS" type="number" step="0.1" placeholder="">
+              </label>
+              <label>k
+                <input id="kCS" type="number" step="0.1" value="" style="width:120px;">
+              </label>
+            </div>
+
+            <div class="card numCard" style="margin-top:10px;">
+              <strong>Tecnología</strong>
+
+              <div class="numRow">
+                <span class="numLbl">ΔT</span>
+                <input id="dTS" type="number" step="0.1" placeholder="" class="numInp">
+              </div>
+
+              <div class="numRow">
+                <span class="numLbl">k</span>
+                <input id="kTS" type="number" step="0.1" value="" class="numInp">
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div><strong>Desglose ΔQs</strong></div>
+            <div class="mono" id="dqsBreakS">—</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div><strong>ΔQs total (usado en la curva)</strong></div>
+          <div class="mono" id="dqsTotalS">ΔQs = 0</div>
+          <div class="hint" id="readS">Introduce c y d para activar la curva.</div>
+
+          <div class="btnRow">
+            <button id="resetS" type="button">Reset Oferta</button>
+          </div>
+        </div>
+
+      </fieldset>
+    </div>
+
+    <!-- PANEL DERECHO -->
+    <div class="graphCard">
+      <canvas id="cvS" width="1020" height="620"></canvas>
+      <div class="hint">
+        Base continua (verde) · Nueva punteada (verde) · Curva recortada en Q=0.
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- =========================
+     VISTA 3: EQUILIBRIO
+     Qd = a - bP + ΔQd
+     Qs = c + dP + ΔQs
+========================== -->
+<section id="view-eq" class="view">
+  <fieldset>
+    <legend>Equilibrio (fase 3)</legend>
+
+    <div class="eqTop">
+
+      <div class="card">
+        <div><strong>Configuración del mercado</strong></div>
+
+        <!-- Tipo de mercado (estructura) -->
+        <label style="grid-template-columns: 1fr 260px;">
+          Tipo de mercado
+          <select id="marketType">
+            <option value="pc">Competencia perfecta</option>
+            <option value="mono" disabled>Monopolio (próximamente)</option>
+            <option value="cm" disabled>Competencia monopolística (próximamente)</option>
+            <option value="oligo" disabled>Oligopolio (próximamente)</option>
+          </select>
+        </label>
+
+        <!-- Intervención (solo si hay intervención) -->
+        <label style="grid-template-columns: 1fr 260px;">
+          Intervención
+          <select id="policyMode">
+            <option value="none">Sin intervención</option>
+            <option value="pmax">Precio máximo (Pmax)</option>
+            <option value="pmin">Precio mínimo (Pmin)</option>
+            <option value="tax">Impuesto específico (t) a productores</option>
+            <option value="taxC">Impuesto específico (t) a consumidores</option>
+            <option value="subsidy" disabled>Subvención específica (próximamente)</option>
+            <option value="vat" disabled>Ad valorem (próximamente)</option>
+          </select>
+        </label>
+
+        <div id="marketSoon" class="hint" style="display:none;">
+          Este tipo de mercado está en desarrollo. De momento se usa competencia perfecta.
+        </div>
+
+        <!-- Caja Pmax: solo aparece si policyMode = pmax -->
+        <div id="pmaxBox" style="display:none; margin-top:10px;">
+          <label style="grid-template-columns: 1fr 260px;">
+            Precio máximo (Pmax)
+            <input id="pmaxVal" type="number" step="0.1" placeholder="Ej: 25">
+          </label>
+          <div class="hint">Si Pmax ≥ P*, no es vinculante y no altera el equilibrio.</div>
+          <div id="policyPendingNotePmax" class="policyNote" style="display:none;">
+            Se mantiene el equilibrio competitivo hasta que se aplique la intervención (introduce un valor) ⚠️
+          </div>
+        </div>
+
+        <!-- Caja Pmin: solo aparece si policyMode = pmin -->
+        <div id="pminBox" style="display:none; margin-top:10px;">
+          <label style="grid-template-columns: 1fr 260px;">
+            Precio mínimo (Pmin)
+            <input id="pminVal" type="number" step="0.1" placeholder="Ej: 25">
+          </label>
+          <div class="hint">Si Pmin ≤ P*, no es vinculante y no altera el equilibrio.</div>
+          <div id="policyPendingNotePmin" class="policyNote" style="display:none;">
+            Se mantiene el equilibrio competitivo hasta que se aplique la intervención (introduce un valor) ⚠️
+          </div>
+        </div>
+
+        <!-- Caja TAX: solo aparece si policyMode = tax -->
+        <div id="taxBox" style="display:none; margin-top:10px;">
+          <label style="grid-template-columns: 1fr 260px;">
+            Impuesto específico (t) por unidad
+            <input id="taxVal" type="number" step="0.1" placeholder="Ej: 5">
+          </label>
+          <div class="hint">Impuesto por unidad aplicado a productores: Pc = Pp + t.</div>
+          <div id="policyPendingNoteTax" class="policyNote" style="display:none;">
+            Se mantiene el equilibrio competitivo hasta que se aplique la intervención (introduce un valor) ⚠️
+          </div>
+        </div>
+
+        <!-- Caja TAXC: solo aparece si policyMode = taxC -->
+        <div id="taxCBox" style="display:none; margin-top:10px;">
+          <label style="grid-template-columns: 1fr 260px;">
+            Impuesto específico (t) por unidad
+            <input id="taxCVal" type="number" step="0.1" placeholder="Ej: 5">
+          </label>
+          <div class="hint">Impuesto por unidad aplicado a consumidores: Pc = Pp + t.</div>
+          <div id="policyPendingNoteTaxC" class="policyNote" style="display:none;">
+            Se mantiene el equilibrio competitivo hasta que se aplique la intervención (introduce un valor) ⚠️
+          </div>
+        </div>
+
+        <div class="hint">
+          El tipo de mercado define el modelo. La intervención modifica el resultado (si procede).
+        </div>
+      </div>
+
+      <div class="formulaWrap">
+        <div class="formula" style="font-size:34px;">
+          a − bP + ΔQ<sup>d</sup> = −c + dP + ΔQ<sup>s</sup>
+        </div>
+      </div>
+
+      <div class="card">
+        <div><strong>Resultados</strong></div>
+
+        <div class="row2tight">
+          <label>Precio (P*)
+            <input id="eqP" type="text" readonly value="— €">
+          </label>
+
+          <label>Cantidad intercambiada (Q*)
+            <input id="eqQ" type="text" readonly value="— uds">
+          </label>
+        </div>
+
+        <div class="row2tight">
+          <label>
+            <span class="label-head">
+              EC (Excedente consumidor)
+              <span class="legend-swatch sw-ec"></span>
+            </span>
+            <input id="eqEC" type="text" readonly value="— €">
+          </label>
+
+          <label>
+            <span class="label-head">
+              EP (Excedente productor)
+              <span class="legend-swatch sw-ep"></span>
+            </span>
+            <input id="eqEP" type="text" readonly value="— €">
+          </label>
+        </div>
+
+        <div class="row2tight">
+          <label>ET (Bienestar total)
+            <input id="eqET" type="text" readonly value="— €">
+          </label>
+
+          <label>
+            <span class="label-head">
+              PIE (Pérdida irrecuperable)
+              <span class="legend-swatch sw-pie"></span>
+            </span>
+            <input id="eqPIE" type="text" readonly value="— €">
+          </label>
+        </div>
+
+        <div class="row2tight">
+          <label>Ganancia de bienestar
+            <input id="eqGB" type="text" readonly value="— €">
+          </label>
+
+          <label>
+            <span class="label-head">
+              Recaudación (Ingreso público)
+              <span class="legend-swatch sw-ip"></span>
+            </span>
+            <input id="eqIP" type="text" readonly value="— €">
+          </label>
+        </div>
+      </div>
+
+        
+
+        <div class="hint" id="readEq">Rellena a,b en Demanda y c,d en Oferta (y los Δ si procede) para calcular.</div>
+
+        <div class="btnRow">
+          <button id="btnReport" type="button">Redactar informe</button>
+          <button id="btnClearReport" type="button">Reset informe</button>
+          <button id="btnSaveReport" type="button">Guardar informe (.txt)</button>
+          <button id="btnPrintGraph" type="button">Imprimir gráfica</button>
+          <button id="resetAll" type="button">Reset Global</button>
+          
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="graphCard" style="margin-top:0;">
+          <canvas id="cvE" width="1020" height="620"></canvas>
+          <div class="hint">
+            Demanda (azul) · Oferta (verde) · Equilibrio (●).
+          </div>
+        </div>
+        
+        <div><strong>Informe</strong></div>
+        <textarea id="reportBox" rows="14" style="width:100%; border-radius:12px; border:1px solid #bfbfbf; padding:10px; background:#f7f6f3;" readonly></textarea>
+        <div class="hint">Genera el informe con “Redactar informe”. Luego puedes guardarlo.</div>
+      </div>
+
+      <!--
+      <div class="graphCard">
+        <canvas id="cvE"></canvas>
+      </div>
+
+      <div class="card">
+        <div><strong>Informe</strong></div>
+        <textarea id="reportBox"...></textarea>
+      </div>
+      -->
+
+    </div>
+  </fieldset>
+</section>
+
+<script>
+(() => {
+  const el = id => document.getElementById(id);
+
+  // =========================
+  // Helpers comunes
+  // =========================
+  function numOrZero(v){
+    const s = String(v ?? "").trim();
+    if (s === "") return 0;
+    const n = Number(s);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+  function drawPoint(ctx,x,y){
+    ctx.save();
+    ctx.fillStyle="#000";
+    ctx.beginPath();
+    ctx.arc(x,y,4,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawLabel(ctx, canvas, text, x, y, kind){
+    ctx.save();
+    ctx.font = "12px system-ui";
+
+    const chip = (kind === "base") ? "— " : (kind === "new" ? "- - - " : "");
+    const fullText = chip + text;
+
+    const padX=6, padY=3;
+    const w = ctx.measureText(fullText).width + padX*2;
+    const h = 14 + padY*2;
+
+    const cx = clamp(x, w/2 + 6, canvas.width - w/2 - 6);
+    const cy = clamp(y, h/2 + 6, canvas.height - h/2 - 6);
+
+    ctx.fillStyle = "rgba(255,255,255,0.93)";
+    ctx.strokeStyle = "rgba(0,0,0,0.16)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.rect(cx - w/2, cy - h/2, w, h);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle="#000";
+    ctx.fillText(fullText, cx - w/2 + padX, cy + 5);
+    ctx.restore();
+  }
+
+  function makeMapper(BOX, Qmax, Pmax){
+    const w = (BOX.right - BOX.left);
+    const h = (BOX.bottom - BOX.top);
+
+    const sx = w / Qmax;
+    const sy = h / Pmax;
+
+    const x0 = BOX.left;
+    const y0 = BOX.bottom;
+
+    const map = (Q,P) => ({ x: x0 + Q*sx, y: y0 - P*sy });
+    return { map, x0, y0, w, h, sx, sy, Qmax, Pmax };
+  }
+
+  function drawAxes(ctx, x0,y0,w,h){
+    ctx.save();
+    ctx.setLineDash([]); 
+    ctx.strokeStyle="#222";
+    ctx.lineWidth=2;
+
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);      ctx.lineTo(x0 + w, y0);   // eje Q
+    ctx.moveTo(x0, y0);      ctx.lineTo(x0, y0 - h);   // eje P
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // =========================
+  // DEMANDA: ΔQd (misma lógica que tenías)
+  // =========================
+  function updateAlphaD(b){
+    el("alphaD").value = (Number.isFinite(b) && b > 0) ? (1/b).toFixed(3) : "—";
+  }
+
+  function shiftFromQuickD(){
+    const incQ = Number(el("incomeQuickD").value);
+    const type = el("goodTypeD").value;
+    const tastesQ = Number(el("tastesQuickD").value);
+    const expectQ = Number(el("expectQuickD").value);
+    const relatedQ = Number(el("relatedQuickD").value);
+
+    const incomeEffect = (type === "normal") ? incQ : -incQ;
+
+    return {
+      incomeEffect, tastesQ, expectQ, relatedQ,
+      total: incomeEffect + tastesQ + expectQ + relatedQ
+    };
+  }
+
+  function shiftFromNumericD(){
+    const type = el("goodTypeD").value;
+
+    const dY = numOrZero(el("dYD").value);
+    const kYbase = numOrZero(el("kYD").value);
+    const kYeff = (type === "normal") ? kYbase : -kYbase;
+    const termIncome = kYeff * dY;
+
+    const Pother = numOrZero(el("PotherD").value);
+    const kOther = numOrZero(el("kOtherD").value);
+    const termOther = kOther * Pother;
+
+    return {
+      dY, kYeff, termIncome,
+      Pother, kOther, termOther,
+      total: termIncome + termOther
+    };
+  }
+
+  function computeShiftD(){
+    const q = shiftFromQuickD();
+    const n = shiftFromNumericD();
+    return { quick: q, numeric: n, total: q.total + n.total };
+  }
+
+  function computeScaleD(a,b,shift){
+    const Q_base = a;
+    const Q_new  = a + shift;
+
+    const P_base = a / b;
+    const P_new  = (a + shift) / b;
+
+    const maxQ = Math.max(Q_base, Q_new, 1);
+    const maxP = Math.max(P_base, P_new, 1);
+
+    const Qmax = maxQ * 1.15 + 5;
+    const Pmax = maxP * 1.25 + 1;
+    return {Qmax, Pmax};
+  }
+
+  function drawCurveDemand(ctx, color, a,b,shift,Pmax,map,dashed){
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash(dashed ? [10,8] : []);
+
+    const Pintercept = (a + shift) / b; // Q=0
+    const Pend = Math.max(0, Math.min(Pintercept, Pmax));
+
+    ctx.beginPath();
+    const steps = 180;
+    for (let i=0; i<=steps; i++){
+      const P = (i/steps) * Pend;
+      const Q = a - b*P + shift;
+      const p = map(Q,P);
+      if (i===0) ctx.moveTo(p.x,p.y);
+      else ctx.lineTo(p.x,p.y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function renderDemand(){
+    const canvas = el("cvD");
+    const ctx = canvas.getContext("2d");
+
+    const CURVE_COLOR = "#1f5fd6";
+    const BOX = { left:130, right:990, top:40, bottom:470 };
+
+    const aStr = el("aD").value.trim();
+    const bStr = el("bD").value.trim();
+
+    const pack = computeShiftD();
+    const shift = pack.total;
+
+    el("dqD").textContent = `ΔQd = ${shift.toFixed(2)}`;
+
+    const q = pack.quick;
+    const n = pack.numeric;
+    el("dqBreakD").textContent =
+`RÁPIDAS:
+  renta = ${q.incomeEffect.toFixed(2)}
+  gustos = ${q.tastesQ.toFixed(2)}
+  expectativas = ${q.expectQ.toFixed(2)}
+  relacionado = ${q.relatedQ.toFixed(2)}
+  subtotal rápidas = ${q.total.toFixed(2)}
+
+NUMÉRICO:
+  k·ΔY = (${n.kYeff.toFixed(2)})·(${n.dY.toFixed(2)}) = ${n.termIncome.toFixed(2)}
+  k·Pᵧ = (${n.kOther.toFixed(2)})·(${n.Pother.toFixed(2)}) = ${n.termOther.toFixed(2)}
+  subtotal numérico = ${n.total.toFixed(2)}
+
+TOTAL ΔQd = ${shift.toFixed(2)}`;
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    if (aStr==="" || bStr===""){
+      el("readD").textContent = "Introduce a y b para activar la curva.";
+      updateAlphaD(NaN);
+      const tmp = makeMapper(BOX, 100, 80);
+      drawAxes(ctx, tmp.x0,tmp.y0,tmp.w,tmp.h);
+      // labels ejes
+      ctx.save();
+      ctx.fillStyle="#000";
+      ctx.font="16px serif";
+      ctx.fillText("Qₓᵈ", tmp.x0 + tmp.w - 22, tmp.y0 + 62);
+      ctx.fillText("Pₓ", tmp.x0 - 55, tmp.y0 - tmp.h + 18);
+      ctx.restore();
+      return;
+    }
+
+    const a = Number(aStr);
+    const b = Number(bStr);
+    updateAlphaD(b);
+
+    if(!Number.isFinite(a) || !Number.isFinite(b) || a<=0 || b<=0){
+      el("readD").textContent = "a y b deben ser positivos.";
+      const tmp = makeMapper(BOX, 100, 80);
+      drawAxes(ctx, tmp.x0,tmp.y0,tmp.w,tmp.h);
+      ctx.save();
+      ctx.fillStyle="#000";
+      ctx.font="16px serif";
+      ctx.fillText("Qₓᵈ", tmp.x0 + tmp.w - 22, tmp.y0 + 62);
+      ctx.fillText("Pₓ", tmp.x0 - 55, tmp.y0 - tmp.h + 18);
+      ctx.restore();
+      return;
+    }
+
+    if (a + shift <= 0){
+      el("readD").textContent = "Con este ΔQd, a + ΔQd ≤ 0. Ajusta palancas/valores.";
+      const tmp = makeMapper(BOX, 100, 80);
+      drawAxes(ctx, tmp.x0,tmp.y0,tmp.w,tmp.h);
+      ctx.save();
+      ctx.fillStyle="#000";
+      ctx.font="16px serif";
+      ctx.fillText("Qₓᵈ", tmp.x0 + tmp.w - 22, tmp.y0 + 62);
+      ctx.fillText("Pₓ", tmp.x0 - 55, tmp.y0 - tmp.h + 18);
+      ctx.restore();
+      return;
+    }
+
+    const {Qmax,Pmax} = computeScaleD(a,b,shift);
+    const tmp = makeMapper(BOX, Qmax, Pmax);
+
+    drawAxes(ctx, tmp.x0,tmp.y0,tmp.w,tmp.h);
+    ctx.save();
+    ctx.fillStyle="#000";
+    ctx.font="16px serif";
+    ctx.fillText("Qₓᵈ", tmp.x0 + tmp.w - 22, tmp.y0 + 62);
+    ctx.fillText("Pₓ", tmp.x0 - 55, tmp.y0 - tmp.h + 18);
+    ctx.restore();
+
+    const hasShift = Math.abs(shift) > 1e-9;
+
+    // Base
+    drawCurveDemand(ctx, CURVE_COLOR, a,b,0,Pmax,tmp.map,false);
+
+    const baseQ = tmp.map(a, 0);
+    const baseP = tmp.map(0, a/b);
+
+    if (!hasShift){
+      el("readD").textContent = "Curva de demanda base (sin desplazamiento).";
+      drawPoint(ctx, baseQ.x, baseQ.y);
+      drawLabel(ctx, canvas, `Base: Q = ${a.toFixed(1)}`, baseQ.x, tmp.y0 - 18, "base");
+
+      drawPoint(ctx, baseP.x, baseP.y);
+      drawLabel(ctx, canvas, `Base: P = ${(a/b).toFixed(1)}`, tmp.x0 - 12, baseP.y, "base");
+      return;
+    }
+
+    el("readD").textContent = shift > 0
+      ? "Demanda desplazada a la derecha: nueva punteada."
+      : "Demanda desplazada a la izquierda: nueva punteada.";
+
+    // Nueva
+    drawCurveDemand(ctx, CURVE_COLOR, a,b,shift,Pmax,tmp.map,true);
+
+    const newQval = a + shift;
+    const newPval = (a + shift)/b;
+
+    const newQ = tmp.map(newQval, 0);
+    const newP = tmp.map(0, newPval);
+
+    // etiquetas en cortes
+    drawPoint(ctx, baseQ.x, baseQ.y);
+    drawPoint(ctx, newQ.x, newQ.y);
+    drawLabel(ctx, canvas, `Base: Q = ${a.toFixed(1)}`, baseQ.x, tmp.y0 - 18, "base");
+    drawLabel(ctx, canvas, `Nueva: Q = ${newQval.toFixed(1)}`, newQ.x, tmp.y0 - 36, "new");
+
+    drawPoint(ctx, baseP.x, baseP.y);
+    drawPoint(ctx, newP.x, newP.y);
+    drawLabel(ctx, canvas, `Base: P = ${(a/b).toFixed(1)}`, tmp.x0 - 12, baseP.y, "base");
+    drawLabel(ctx, canvas, `Nueva: P = ${newPval.toFixed(1)}`, tmp.x0 - 12, newP.y - 18, "new");
+
+    // flecha ΔQd sobre eje Q (comparando Q-interceptos)
+    if (Math.abs(newQ.x - baseQ.x) >= 18){
+      const y = tmp.y0 + 85;
+      const x1 = baseQ.x, x2 = newQ.x;
+
+      ctx.save();
+      ctx.strokeStyle="#222";
+      ctx.fillStyle="#222";
+      ctx.lineWidth=2;
+      ctx.beginPath();
+      ctx.moveTo(x1,y);
+      ctx.lineTo(x2,y);
+      ctx.stroke();
+      const dir = x2 >= x1 ? 1 : -1;
+      const head = 10;
+      ctx.beginPath();
+      ctx.moveTo(x2,y);
+      ctx.lineTo(x2 - dir*head, y - 6);
+      ctx.lineTo(x2 - dir*head, y + 6);
+      ctx.closePath();
+      ctx.fill();
+      drawLabel(ctx, canvas, `ΔQd = ${shift.toFixed(2)}`, (x1+x2)/2, y - 16);
+      ctx.restore();
+    }
+  }
+
+  // =========================
+  // OFERTA: Qs = c + dP + ΔQs  (c libre con signo)
+  // =========================
+  function updateBetaS(d){
+    el("betaS").value = (Number.isFinite(d) && d > 0) ? (1/d).toFixed(3) : "—";
+  }
+
+  function shiftFromQuickS(){
+    const costQ    = Number(el("costQuickS").value);
+    const techQ    = Number(el("techQuickS").value);
+    const sellersQ = Number(el("sellersQuickS").value);
+    const expectQ  = Number(el("expectQuickS").value);
+    return { costQ, techQ, sellersQ, expectQ, total: costQ + techQ + sellersQ + expectQ };
+  }
+
+  function shiftFromNumericS(){
+    const dC = numOrZero(el("dCS").value);
+    const kC = numOrZero(el("kCS").value);
+    const termCost = kC * dC;
+
+    const dT = numOrZero(el("dTS").value);
+    const kT = numOrZero(el("kTS").value);
+    const termTech = kT * dT;
+
+    return { dC,kC,termCost, dT,kT,termTech, total: termCost + termTech };
+  }
+
+  function computeShiftS(){
+    const q = shiftFromQuickS();
+    const n = shiftFromNumericS();
+    return { quick:q, numeric:n, total: q.total + n.total };
+  }
+
+  function computeScaleS(c,d,shift){
+    // Intercepto en Q=0: 0 = -c + dP + shift  => P0 = -(c+shift)/d
+    const P0_base = c / d;
+    const P0_new  = (c - shift) / d;
+
+    const maxP0 = Math.max(P0_base, P0_new, 1);
+    const Pmax = maxP0 * 1.6 + 5;
+
+    const Qend_base = Math.max(0,  -c + d*Pmax);
+    const Qend_new  = Math.max(0,  -c + d*Pmax + shift);
+    const maxQ = Math.max(Qend_base, Qend_new, 1);
+    const Qmax = maxQ * 1.15 + 5;
+
+    return {Qmax, Pmax};
+  }
+
+  function drawCurveSupply(ctx, color, c,d,shift,Pmax,map,dashed){
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash(dashed ? [10,8] : []);
+
+    const P0 = (c - shift) / d;      // Q=0
+    const Pstart = Math.max(0, P0);
+    const Pend = Math.max(Pstart, Pmax);
+
+    ctx.beginPath();
+    const steps = 180;
+    for (let i=0; i<=steps; i++){
+      const P = Pstart + (i/steps) * (Pend - Pstart);
+      const Q = -c + d*P + shift;
+      const Qclip = Math.max(0, Q);
+      const p = map(Qclip, P);
+      if (i===0) ctx.moveTo(p.x,p.y);
+      else ctx.lineTo(p.x,p.y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function renderSupply(){
+    const canvas = el("cvS");
+    const ctx = canvas.getContext("2d");
+
+    const CURVE_COLOR = "#1a7f37";
+    const BOX = { left:130, right:990, top:40, bottom:470 };
+
+    const cStr = el("cS").value.trim();
+    const dStr = el("dS").value.trim();
+
+    const pack = computeShiftS();
+    const shift = pack.total;
+
+    el("dqsTotalS").textContent = `ΔQs = ${shift.toFixed(2)}`;
+
+    const q = pack.quick;
+    const n = pack.numeric;
+    el("dqsBreakS").textContent =
+`RÁPIDAS:
+  costes = ${q.costQ.toFixed(2)}
+  tecnología = ${q.techQ.toFixed(2)}
+  nº oferentes = ${q.sellersQ.toFixed(2)}
+  expectativas = ${q.expectQ.toFixed(2)}
+  subtotal rápidas = ${q.total.toFixed(2)}
+
+NUMÉRICO:
+  k·ΔC = (${n.kC.toFixed(2)})·(${n.dC.toFixed(2)}) = ${n.termCost.toFixed(2)}
+  k·ΔT = (${n.kT.toFixed(2)})·(${n.dT.toFixed(2)}) = ${n.termTech.toFixed(2)}
+  subtotal numérico = ${n.total.toFixed(2)}
+
+TOTAL ΔQs = ${shift.toFixed(2)}`;
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    if (cStr==="" || dStr===""){
+      el("readS").textContent = "Introduce c y d para activar la curva.";
+      updateBetaS(NaN);
+      const tmp = makeMapper(BOX, 120, 80);
+      drawAxes(ctx, tmp.x0,tmp.y0,tmp.w,tmp.h);
+      ctx.save();
+      ctx.fillStyle="#000";
+      ctx.font="16px serif";
+      ctx.fillText("Qₓˢ", tmp.x0 + tmp.w - 22, tmp.y0 + 62);
+      ctx.fillText("Pₓ", tmp.x0 - 55, tmp.y0 - tmp.h + 18);
+      ctx.restore();
+      return;
+    }
+
+    const c = Number(cStr);
+    const d = Number(dStr);
+    updateBetaS(d);
+
+    if(!Number.isFinite(c) || !Number.isFinite(d) || d<=0){
+      el("readS").textContent = "d debe ser positivo. (c puede ser + o −).";
+      const tmp = makeMapper(BOX, 120, 80);
+      drawAxes(ctx, tmp.x0,tmp.y0,tmp.w,tmp.h);
+      ctx.save();
+      ctx.fillStyle="#000";
+      ctx.font="16px serif";
+      ctx.fillText("Qₓˢ", tmp.x0 + tmp.w - 22, tmp.y0 + 62);
+      ctx.fillText("Pₓ", tmp.x0 - 55, tmp.y0 - tmp.h + 18);
+      ctx.restore();
+      return;
+    }
+
+    const {Qmax,Pmax} = computeScaleS(c,d,shift);
+    const tmp = makeMapper(BOX, Qmax, Pmax);
+
+    drawAxes(ctx, tmp.x0,tmp.y0,tmp.w,tmp.h);
+    ctx.save();
+    ctx.fillStyle="#000";
+    ctx.font="16px serif";
+    ctx.fillText("Qₓˢ", tmp.x0 + tmp.w - 22, tmp.y0 + 62);
+    ctx.fillText("Pₓ", tmp.x0 - 55, tmp.y0 - tmp.h + 18);
+    ctx.restore();
+
+    const hasShift = Math.abs(shift) > 1e-9;
+
+    // Base
+    drawCurveSupply(ctx, CURVE_COLOR, c,d,0,Pmax,tmp.map,false);
+
+    if (!hasShift){
+      el("readS").textContent = "Curva de oferta base (sin desplazamiento).";
+    } else {
+      el("readS").textContent = shift > 0
+        ? "Oferta desplazada a la derecha: nueva punteada."
+        : "Oferta desplazada a la izquierda: nueva punteada.";
+      drawCurveSupply(ctx, CURVE_COLOR, c,d,shift,Pmax,tmp.map,true);
+    }
+
+    // Etiquetas en intercepto Q=0 (precio mínimo / arranque)
+    const P0_base = c / d;
+    const P0_new  = (c - shift) / d;
+
+    const baseP = Math.max(0, P0_base);
+    const newP  = Math.max(0, P0_new);
+
+    const pBase = tmp.map(0, baseP);
+    drawPoint(ctx, pBase.x, pBase.y);
+    drawLabel(ctx, canvas, `Base: P₀ = ${P0_base.toFixed(1)}`, tmp.x0 - 12, pBase.y, "base");
+
+    if (hasShift && Math.abs(newP - baseP) > 1e-6){
+      const pNew = tmp.map(0, newP);
+      drawPoint(ctx, pNew.x, pNew.y);
+      drawLabel(ctx, canvas, `Nueva: P₀ = ${P0_new.toFixed(1)}`, tmp.x0 - 12, pNew.y - 18, "new");
+    }
+  }
+
+  // =========================
+  // EQUILIBRIO: usa inputs de ambas fases (estado compartido)
+  // =========================
+  
+  // =========================
+  // EQUILIBRIO: MODO LIBRE + EXCEDENTES + REPORTE + PRINT
+  // Oferta asumida: Qs = -c + dP + ΔQs
+  // =========================
+  let lastResult = null;
+
+  function safeFixed(x, k=2){
+    return Number.isFinite(x) ? x.toFixed(k) : "—";
+  }
+
+    function toggleEqUI(){
+      const mt = el("marketType")?.value || "pc";
+      const pm = el("policyMode")?.value || "none";
+
+      // aviso "próximamente" si intentan otro mercado
+      const soon = el("marketSoon");
+      if (soon) soon.style.display = (mt !== "pc") ? "block" : "none";
+
+      // caja Pmax solo en policyMode = pmax
+      const box = el("pmaxBox");
+      if (box) box.style.display = (pm === "pmax") ? "block" : "none";
+
+      // caja Pmin solo en policyMode = pmin
+      const boxMin = el("pminBox");
+      if (boxMin) boxMin.style.display = (pm === "pmin") ? "block" : "none";
+
+      // caja TAX solo en policyMode = tax
+      const boxTax = el("taxBox");
+      if (boxTax) boxTax.style.display = (pm === "tax") ? "block" : "none";
+
+      // caja TAXC solo en policyMode = taxC
+      const boxTaxC = el("taxCBox");
+      if (boxTaxC) boxTaxC.style.display = (pm === "taxC") ? "block" : "none";
+
+      // avisos independientes para Pmax y Pmin
+      const notePmax = el("policyPendingNotePmax");
+      const notePmin = el("policyPendingNotePmin");
+      const noteTax = el("policyPendingNoteTax");
+      const noteTaxC = el("policyPendingNoteTaxC");
+
+      const pmaxRaw = (el("pmaxVal")?.value ?? "").trim();
+      const pminRaw = (el("pminVal")?.value ?? "").trim();
+      const taxRaw = (el("taxVal")?.value ?? "").trim();
+      const taxCRaw = (el("taxCVal")?.value ?? "").trim();
+
+      const pendingPmax = (pm === "pmax" && pmaxRaw === "");
+      const pendingPmin = (pm === "pmin" && pminRaw === "");
+      const pendingTax = (pm === "tax" && taxRaw === "");
+      const pendingTaxC = (pm === "taxC" && taxCRaw === "");
+
+      if (notePmax) notePmax.style.display = pendingPmax ? "block" : "none";
+      if (notePmin) notePmin.style.display = pendingPmin ? "block" : "none";
+      if (noteTax) noteTax.style.display = pendingTax ? "block" : "none";
+      if (noteTaxC) noteTaxC.style.display = pendingTaxC ? "block" : "none";
+
+      // si eligen un mercado no implementado, forzamos pc
+      if (mt !== "pc" && el("marketType")) el("marketType").value = "pc";
+    }
+
+    function drawHLine(ctx, tmp, canvas, P, labelText, axisTag){
+      const Pdraw = Math.max(0, Math.min(P, tmp.Pmax));
+      const y = tmp.map(0, Pdraw).y;
+
+      // línea horizontal
+      ctx.save();
+      ctx.setLineDash([8,6]);
+      ctx.strokeStyle = "rgba(0,0,0,0.65)";
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(tmp.x0, y);
+      ctx.lineTo(tmp.x0 + tmp.w, y);
+      ctx.stroke();
+      ctx.restore();
+
+      if (labelText){
+        drawLabel(ctx, canvas, labelText, tmp.x0 + tmp.w * 0.65, y - 14, "base");
+      }
+
+      // tick en eje P
+      ctx.save();
+      ctx.setLineDash([]);
+      ctx.strokeStyle = "rgba(0,0,0,0.75)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(tmp.x0 - 6, y);
+      ctx.lineTo(tmp.x0 + 6, y);
+      ctx.stroke();
+      ctx.restore();
+
+      // etiqueta en eje P
+      const tag = axisTag || `P = ${P.toFixed(2)} €`;
+      drawLabel(ctx, canvas, tag, tmp.x0 - 10, y, "base");
+    }
+
+  function renderEq(){
+    const canvas = el("cvE");
+    const ctx = canvas.getContext("2d");
+    const BOX = { left:130, right:990, top:40, bottom:470 };
+
+    // Nuevo diseño: tipo de mercado + intervención
+    const marketType = el("marketType") ? el("marketType").value : "pc";
+    const policyMode = el("policyMode") ? el("policyMode").value : "none";
+
+    // UI reactiva (muestra Pmax si toca, etc.)
+    toggleEqUI();
+
+    // Por ahora solo implementamos competencia perfecta
+    if (marketType !== "pc"){
+      if (el("readEq")) el("readEq").textContent =
+        "Este tipo de mercado está en desarrollo. De momento se usa Competencia perfecta.";
+      if (el("marketType")) el("marketType").value = "pc";
+    }
+
+    const aStr = el("aD").value.trim();
+    const bStr = el("bD").value.trim();
+    const cStr = el("cS").value.trim();
+    const dStr = el("dS").value.trim();
+
+    const shiftD = computeShiftD().total; // ΔQd total
+    const shiftS = computeShiftS().total; // ΔQs total
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // Reset outputs by default
+    if (el("eqP"))  el("eqP").value  = "—";
+    if (el("eqQ"))  el("eqQ").value  = "—";
+    if (el("eqEC")) el("eqEC").value = "—";
+    if (el("eqEP")) el("eqEP").value = "—";
+    if (el("eqET")) el("eqET").value = "—";
+    if (el("eqPIE")) el("eqPIE").value = "—";
+
+    // Ejes vacíos si faltan datos
+    if (aStr==="" || bStr==="" || cStr==="" || dStr===""){
+      lastResult = null;
+      if (el("readEq")) el("readEq").textContent =
+        "Rellena a,b en Demanda y c,d en Oferta (y si quieres, ajusta Δ) para calcular.";
+
+      const tmp = makeMapper(BOX, 120, 80);
+      drawAxes(ctx, tmp.x0,tmp.y0,tmp.w,tmp.h);
+      ctx.save();
+      ctx.fillStyle="#000";
+      ctx.font="16px serif";
+      ctx.fillText("Q", tmp.x0 + tmp.w - 10, tmp.y0 + 62);
+      ctx.fillText("P", tmp.x0 - 28, tmp.y0 - tmp.h + 18);
+      ctx.restore();
+      return;
+    }
+
+    const a = Number(aStr);
+    const b = Number(bStr);
+    const c = Number(cStr);
+    const d = Number(dStr);
+
+    if(!Number.isFinite(a) || !Number.isFinite(b) || !Number.isFinite(c) || !Number.isFinite(d) || a<=0 || b<=0 || d<=0){
+      lastResult = null;
+      if (el("readEq")) el("readEq").textContent = "Revisa: a>0, b>0, d>0. (c puede ser + o −).";
+      const tmp = makeMapper(BOX, 120, 80);
+      drawAxes(ctx, tmp.x0,tmp.y0,tmp.w,tmp.h);
+      return;
+    }
+
+    // Parámetros “finales” (con desplazamientos)
+    // Demanda: Qd = (a+ΔQd) - bP
+    const A = a + shiftD;
+
+    // Oferta: Qs = -c + dP + ΔQs = (-c + ΔQs) + dP
+    const S0 = (-c + shiftS);
+
+    const denom = (b + d);
+    if (Math.abs(denom) < 1e-12){
+      lastResult = null;
+      if (el("readEq")) el("readEq").textContent = "No se puede calcular: b + d ≈ 0.";
+      const tmp = makeMapper(BOX, 120, 80);
+      drawAxes(ctx, tmp.x0,tmp.y0,tmp.w,tmp.h);
+      return;
+    }
+
+        // =========================================================
+    // 1) Equilibrio competitivo (referencia SIEMPRE)
+    // =========================================================
+    const Pstar = (A - S0) / denom;
+    const Qstar = A - b*Pstar; // = S0 + d*Pstar
+
+    const inStar = (Number.isFinite(Pstar) && Number.isFinite(Qstar) && Pstar >= 0 && Qstar >= 0);
+
+    // Precios de corte (para excedentes)
+    const Pd0 = A / b;               // demanda: Q=0
+    const Ps0 = (c - shiftS) / d;    // oferta: Q=0  (0=-c+dP+shiftS => P=(c-shiftS)/d)
+
+    const EC_star = inStar ? Math.max(0, 0.5 * Qstar * (Pd0 - Pstar)) : NaN;
+    const EP_star = inStar ? Math.max(0, 0.5 * Qstar * (Pstar - Ps0)) : NaN;
+    const ET_star = (Number.isFinite(EC_star) && Number.isFinite(EP_star)) ? (EC_star + EP_star) : NaN;
+
+    // =========================================================
+    // 2) Escenario ACTUAL (sin intervención / Pmax)
+    // =========================================================
+    let eqP = Pstar;
+    let eqQ = Qstar;
+
+    let EC = EC_star;
+    let EP = EP_star;
+    let ET = ET_star;
+    let PIE = 0;
+
+    // extras para Pmax
+    let pmax = NaN, Qd_max = NaN, Qs_max = NaN, shortage = 0;
+    let binding = false;
+
+    // extras para Pmin
+    let pmin = NaN, Qd_min = NaN, Qs_min = NaN, surplus = 0;
+    let bindingMin = false;
+
+    // extras para TAX (productores)
+    let tax = NaN, bindingTax = false;
+    let Pc = NaN, Pp = NaN, Qt_tax = NaN;
+    let revenue = 0, IP = 0;
+
+    if (policyMode === "pmax"){
+      // Importante: si el input está vacío, Number("") = 0 (te fastidia).
+      // Así que detectamos vacío antes:
+      const raw = el("pmaxVal")?.value;
+      pmax = (raw == null || String(raw).trim() === "") ? NaN : Number(raw);
+
+      if (!Number.isFinite(pmax)){
+        // SIN VALOR AÚN -> mantenemos equilibrio competitivo (no intervención)
+        binding = false;
+        eqP = Pstar;
+        eqQ = Qstar;
+
+        EC = EC_star; EP = EP_star; ET = ET_star; PIE = 0;
+
+        if (el("readEq")){
+          el("readEq").textContent = "Introduce un Pmax para activar la intervención.";
+        }
+      } else {
+        // Diagnóstico vinculante / no vinculante
+        if (Number.isFinite(Pstar) && pmax >= Pstar){
+          // NO vinculante
+          binding = false;
+          eqP = Pstar;
+          eqQ = Qstar;
+
+          EC = EC_star; EP = EP_star; ET = ET_star; PIE = 0;
+
+          if (el("readEq")){
+            el("readEq").textContent =
+              "Precio máximo NO vinculante (Pmax ≥ P*). No altera el equilibrio competitivo.";
+          }
+        } else {
+          // VINCULANTE
+          binding = true;
+
+          Qd_max = A - b*pmax;
+          Qs_max = S0 + d*pmax;
+
+          const Qtr = Math.max(0, Qs_max); // en Pmax vinculante la cantidad transada es Qs(Pmax)
+          shortage = Math.max(0, Qd_max - Qs_max);
+
+          eqP = pmax;
+          eqQ = Qtr;
+
+          // Precio en demanda cuando Q = Qs(Pmax)
+          const P_d_at_Qt = (b !== 0) ? ((A - Qtr) / b) : NaN;
+
+          // EC como trapecio
+          EC = (Qtr > 0 && Number.isFinite(P_d_at_Qt))
+            ? 0.5 * Qtr * ((Pd0 - pmax) + (P_d_at_Qt - pmax))
+            : 0;
+
+          EP = (Qtr > 0) ? Math.max(0, 0.5 * Qtr * (pmax - Ps0)) : 0;
+          ET = EC + EP;
+          PIE = (Number.isFinite(ET_star)) ? Math.max(0, ET_star - ET) : NaN;
+
+          if (el("readEq")){
+            el("readEq").textContent =
+              `Precio máximo VINCULANTE (Pmax < P*). Escasez = Qd(Pmax) − Qs(Pmax) = ${shortage.toFixed(2)} uds.`;
+          }
+        }
+      }
+    }
+    else if (policyMode === "pmin"){
+      // Igual que en Pmax: si está vacío, NO lo conviertas en 0.
+      const raw = el("pminVal")?.value;
+      pmin = (raw == null || String(raw).trim() === "") ? NaN : Number(raw);
+
+      if (!Number.isFinite(pmin)){
+        // SIN VALOR AÚN -> mantenemos equilibrio competitivo
+        bindingMin = false;
+        eqP = Pstar;
+        eqQ = Qstar;
+
+        EC = EC_star; EP = EP_star; ET = ET_star; PIE = 0;
+
+        if (el("readEq")){
+          el("readEq").textContent = "Introduce un Pmin para activar la intervención.";
+        }
+      } else {
+        // Diagnóstico vinculante / no vinculante
+        if (Number.isFinite(Pstar) && pmin <= Pstar){
+          // NO vinculante
+          bindingMin = false;
+          eqP = Pstar;
+          eqQ = Qstar;
+
+          EC = EC_star; EP = EP_star; ET = ET_star; PIE = 0;
+
+          if (el("readEq")){
+            el("readEq").textContent =
+              "Precio mínimo NO vinculante (Pmin ≤ P*). No altera el equilibrio competitivo.";
+          }
+        } else {
+          // VINCULANTE
+          bindingMin = true;
+
+          Qd_min = A - b*pmin;
+          Qs_min = S0 + d*pmin;
+
+          const Qt = Math.max(0, Qd_min); // en Pmin vinculante: Qt = Qd(Pmin)
+          surplus = Math.max(0, Qs_min - Qd_min);
+
+          eqP = pmin;
+          eqQ = Qt;
+
+          // Bienestar:
+          // EC: triángulo
+          EC = (Qt > 0) ? Math.max(0, 0.5 * Qt * (Pd0 - pmin)) : 0;
+
+          // EP: trapecio entre pmin y oferta hasta Qt
+          const P_s_at_Qt = (d !== 0) ? ((Qt - S0) / d) : NaN;
+          const h0 = (pmin - Ps0);
+          const h1 = Number.isFinite(P_s_at_Qt) ? (pmin - P_s_at_Qt) : NaN;
+
+          EP = (Qt > 0 && Number.isFinite(h1))
+            ? Math.max(0, 0.5 * Qt * (h0 + h1))
+            : 0;
+
+          ET = EC + EP;
+          PIE = (Number.isFinite(ET_star)) ? Math.max(0, ET_star - ET) : NaN;
+
+          if (el("readEq")){
+            el("readEq").textContent =
+              `Precio mínimo VINCULANTE (Pmin > P*). Exceso de oferta = Qs(Pmin) − Qd(Pmin) = ${surplus.toFixed(2)} uds.`;
+          }
+        }
+      }
+    }
+    else if (policyMode === "tax"){
+      const raw = el("taxVal")?.value;
+      tax = (raw == null || String(raw).trim() === "") ? NaN : Number(raw);
+
+      if (!Number.isFinite(tax) || tax < 0){
+        // SIN VALOR (o negativo) -> mantenemos equilibrio competitivo
+        bindingTax = false;
+        eqP = Pstar;
+        eqQ = Qstar;
+
+        EC = EC_star; EP = EP_star; ET = ET_star; PIE = 0;
+
+        if (el("readEq")){
+          el("readEq").textContent = "Introduce un impuesto t (≥ 0) para activar la intervención.";
+        }
+      } else if (tax === 0){
+        // t=0 -> no altera nada
+        bindingTax = false;
+        eqP = Pstar;
+        eqQ = Qstar;
+
+        EC = EC_star; EP = EP_star; ET = ET_star; PIE = 0;
+
+        if (el("readEq")){
+          el("readEq").textContent = "Impuesto t = 0 (no vinculante). No altera el equilibrio competitivo.";
+        }
+      } else {
+        // VINCULANTE (t>0)
+        bindingTax = true;
+
+        // Con tu forma Q(P):
+        // Qd(Pc)=A - bPc
+        // Qs_tax(Pc)=S0 + d(Pc - t) = (S0 - d*t) + dPc
+        // Igualando:
+        Pc = (A - S0 + d*tax) / (b + d);
+        Qt_tax = A - b*Pc;
+
+        // Seguridad: no permitir Qt<0
+        if (!Number.isFinite(Qt_tax) || Qt_tax < 0){
+          Qt_tax = 0;
+        }
+
+        Pp = Pc - tax;
+
+        // Escenario actual del simulador: etiqueta/valor principal en eqP/eqQ
+        // (OJO: en impuestos conviene mostrar Pc como precio del mercado)
+        eqP = Pc;
+        eqQ = Qt_tax;
+
+        // Ingreso público
+        revenue = tax * Qt_tax;
+        IP = revenue;
+
+        // Excedentes:
+        // Pd0 y Ps0 ya los tienes (para A y shiftS)
+        // EC con Pc (triángulo)
+        EC = (Qt_tax > 0) ? Math.max(0, 0.5 * Qt_tax * (Pd0 - Pc)) : 0;
+
+        // EP con Pp (triángulo sobre oferta original)
+        EP = (Qt_tax > 0) ? Math.max(0, 0.5 * Qt_tax * (Pp - Ps0)) : 0;
+
+        ET = EC + EP + IP;
+
+        // PIE (triángulo clásico)
+        PIE = (Number.isFinite(Qstar)) ? Math.max(0, 0.5 * tax * (Qstar - Qt_tax)) : NaN;
+
+        if (el("readEq")){
+          el("readEq").textContent =
+            `Impuesto específico a productores (t>0). Pc = ${Pc.toFixed(2)} €, Pp = ${Pp.toFixed(2)} €, Qt = ${Qt_tax.toFixed(2)} uds. Recaudación = ${revenue.toFixed(2)} €.`;
+        }
+      }
+    }
+    else if (policyMode === "taxC"){
+      const raw = el("taxCVal")?.value;
+      const taxC = (raw == null || String(raw).trim() === "") ? NaN : Number(raw);
+
+      // variables locales modo consumidores (para no pisar las de productores)
+      let PcC = NaN, PpC = NaN, Qt_taxC = NaN;
+      let revenueC = 0;
+
+      if (!Number.isFinite(taxC) || taxC < 0){
+        // SIN VALOR (o negativo) -> mantenemos equilibrio competitivo
+        eqP = Pstar;
+        eqQ = Qstar;
+
+        EC = EC_star; EP = EP_star; ET = ET_star; PIE = 0;
+        IP = 0;
+
+        if (el("readEq")){
+          el("readEq").textContent = "Introduce un impuesto t (≥ 0) para activar la intervención (consumidores).";
+        }
+
+      } else if (taxC === 0){
+        // t=0 -> no altera nada
+        eqP = Pstar;
+        eqQ = Qstar;
+
+        EC = EC_star; EP = EP_star; ET = ET_star; PIE = 0;
+        IP = 0;
+
+        if (el("readEq")){
+          el("readEq").textContent = "Impuesto a consumidores t = 0 (no vinculante). No altera el equilibrio competitivo.";
+        }
+
+      } else {
+        // VINCULANTE (t>0) a consumidores
+        // Demanda: Q = A - b(Pp + t)
+        // Oferta:  Q = S0 + dPp
+        // => Pp = (A - S0 - b t)/(b + d)
+        PpC = (A - S0 - b*taxC) / (b + d);
+        PcC = PpC + taxC;
+
+        Qt_taxC = S0 + d*PpC;   // equivalente a A - b*PcC
+
+        if (!Number.isFinite(Qt_taxC) || Qt_taxC < 0){
+          Qt_taxC = 0;
+        }
+
+        // Precio “visible” del mercado: para consumidores conviene mostrar Pc
+        eqP = PcC;
+        eqQ = Qt_taxC;
+
+        revenueC = taxC * Qt_taxC;
+        IP = revenueC;
+
+        // Excedentes:
+        // EC con Pc (triángulo)
+        EC = (Qt_taxC > 0) ? Math.max(0, 0.5 * Qt_taxC * (Pd0 - PcC)) : 0;
+
+        // EP con Pp (triángulo sobre oferta)
+        EP = (Qt_taxC > 0) ? Math.max(0, 0.5 * Qt_taxC * (PpC - Ps0)) : 0;
+
+        ET = EC + EP + IP;
+
+        // PIE
+        PIE = (Number.isFinite(Qstar)) ? Math.max(0, 0.5 * taxC * (Qstar - Qt_taxC)) : NaN;
+
+        if (el("readEq")){
+          el("readEq").textContent =
+            `Impuesto específico a consumidores (t>0). Pc = ${PcC.toFixed(2)} €, Pp = ${PpC.toFixed(2)} €, Qt = ${Qt_taxC.toFixed(2)} uds. Recaudación = ${revenueC.toFixed(2)} €.`;
+        }
+      }
+
+      // Guardamos “alias” en variables compartidas para el dibujo (sin tocar las de productores)
+      // Reutilizamos Pc/Pp/Qt_tax/revenue SOLO como "salida visual" cuando el modo es taxC
+      Pc = PcC;
+      Pp = PpC;
+      Qt_tax = Qt_taxC;
+      revenue = revenueC;
+      tax = taxC;          // para reutilizar etiquetas t y la lógica de PIE sombreado (se controlará por policyMode)
+      bindingTax = (Number.isFinite(taxC) && taxC > 0);
+    }
+    else {
+      // Sin intervención
+      if (el("readEq")){
+        el("readEq").textContent = inStar
+          ? "Equilibrio en competencia perfecta (sin intervención)."
+          : "El cruce cae fuera del primer cuadrante (P*<0 o Q*<0) con estos parámetros.";
+      }
+    }
+
+    // =========================================================
+    // 3) Outputs UI
+    // =========================================================
+    if (el("eqP")) el("eqP").value = Number.isFinite(eqP) ? (safeFixed(eqP,2) + " €") : "— €";
+    if (el("eqQ")) el("eqQ").value = Number.isFinite(eqQ) ? (safeFixed(eqQ,2) + " uds") : "— uds";
+
+    if (el("eqEC")) el("eqEC").value = Number.isFinite(EC) ? safeFixed(EC,2) + " €" : "— €";
+    if (el("eqEP")) el("eqEP").value = Number.isFinite(EP) ? safeFixed(EP,2) + " €" : "— €";
+    if (el("eqET")) el("eqET").value = Number.isFinite(ET) ? safeFixed(ET,2) + " €" : "— €";
+    if (el("eqPIE")) el("eqPIE").value = Number.isFinite(PIE) ? safeFixed(PIE,2) + " €" : "— €";
+    if (el("eqIP")) {
+      //const valIP = (policyMode === "tax" && Number.isFinite(IP)) ? IP : NaN;
+      const valIP = ((policyMode === "tax" || policyMode === "taxC") && Number.isFinite(IP)) ? IP : NaN;
+      el("eqIP").value = Number.isFinite(valIP) ? safeFixed(valIP,2) + " €" : "— €";
+    }
+
+    // Guardamos lastResult para informe
+    lastResult = {
+      mode:
+        (policyMode === "pmax" && Number.isFinite(pmax)) ? "pmax" :
+        (policyMode === "pmin" && Number.isFinite(pmin)) ? "pmin" :
+        (policyMode === "tax"  && Number.isFinite(tax))  ? "tax"  :
+        (policyMode === "taxC" && Number.isFinite(tax))  ? "taxC" :
+        "none",
+      marketType: "pc",
+
+      a,b,c,d, shiftD, shiftS, A, S0,
+      // competitivo referencia
+      Pstar, Qstar, Pd0, Ps0,
+      EC_star, EP_star, ET_star,
+
+      // escenario actual
+      eqP, eqQ, EC, EP, ET, PIE,
+
+      // pmax extras
+      pmax, binding, Qd_max, Qs_max, shortage,
+
+      // pmin extras
+      pmin, bindingMin, Qd_min, Qs_min, surplus,
+
+      // tax
+      tax, bindingTax, Pc, Pp, Qt_tax, revenue, IP,
+    };
+
+    // =========================================================
+    // 4) Escala conjunta para dibujar
+    // =========================================================
+    const P_int_D = A / b;              // demanda: Q=0
+    const P_int_S = (c - shiftS) / d;   // oferta: Q=0
+
+    const pmaxForScale = (policyMode === "pmax" && Number.isFinite(pmax)) ? pmax : 0;
+    const pminForScale = (policyMode === "pmin" && Number.isFinite(pmin)) ? pmin : 0;
+    //const taxForScale = (policyMode === "tax" && Number.isFinite(Pc)) ? Pc : 0;
+    //const taxPpForScale = (policyMode === "tax" && Number.isFinite(Pp)) ? Pp : 0;
+    const taxForScale = ((policyMode === "tax" || policyMode === "taxC") && Number.isFinite(Pc)) ? Pc : 0;
+    const taxPpForScale = ((policyMode === "tax" || policyMode === "taxC") && Number.isFinite(Pp)) ? Pp : 0;
+    const maxP = Math.max(P_int_D, P_int_S, Pstar, pmaxForScale, pminForScale, taxForScale, taxPpForScale, 1);
+    const Pmax = maxP * 1.25 + 2;
+
+    const Q_at_P0_D = A;
+    const Q_at_Pmax_D = Math.max(0, A - b*Pmax);
+    const Q_at_P0_S = Math.max(0, S0);
+    const Q_at_Pmax_S = Math.max(0, S0 + d*Pmax);
+
+    const maxQ = Math.max(Q_at_P0_D, Q_at_Pmax_D, Q_at_P0_S, Q_at_Pmax_S, Qstar, eqQ, 1);
+    const Qmax = maxQ * 1.15 + 5;
+
+    const tmp = makeMapper(BOX, Qmax, Pmax);
+    drawAxes(ctx, tmp.x0,tmp.y0,tmp.w,tmp.h);
+
+    // labels ejes
+    ctx.save();
+    ctx.fillStyle="#000";
+    ctx.font="16px serif";
+    ctx.fillText("Q", tmp.x0 + tmp.w - 10, tmp.y0 + 62);
+    ctx.fillText("P", tmp.x0 - 28, tmp.y0 - tmp.h + 18);
+    ctx.restore();
+
+    // Demanda actual
+    ctx.save();
+    ctx.strokeStyle="#1f5fd6";
+    ctx.lineWidth=2.5;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    {
+      const steps=180;
+      const Pend = Math.max(0, Math.min(P_int_D, Pmax));
+      for(let i=0;i<=steps;i++){
+        const P = (i/steps)*Pend;
+        const Q = A - b*P;
+        const p = tmp.map(Math.max(0,Q), P);
+        if(i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y);
+      }
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    // =====================================================
+    // Demanda con impuesto a consumidores: punteada (taxC)
+    // En ejes P interpretamos P = Pp (precio recibido).
+    // Qd_tax(Pp) = A - b(Pp + t) = (A - b t) - b Pp
+    // =====================================================
+    if (policyMode === "taxC" && Number.isFinite(tax) && tax > 0){
+      const A_taxC = A - b*tax;          // nuevo intercepto en Pp
+      const P_int_D_taxC = A_taxC / b;   // corte con eje P (cuando Q=0)
+
+      ctx.save();
+      ctx.strokeStyle="#1f5fd6";
+      ctx.lineWidth=2.5;
+      ctx.setLineDash([10,8]);
+
+      ctx.beginPath();
+      {
+        const steps=180;
+        const Pend = Math.max(0, Math.min(P_int_D_taxC, Pmax));
+        for(let i=0;i<=steps;i++){
+          const P = (i/steps)*Pend;
+          const Q = A_taxC - b*P;
+          const p = tmp.map(Math.max(0,Q), P);
+          if(i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y);
+        }
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Oferta actual
+    ctx.save();
+    ctx.strokeStyle="#1a7f37";
+    ctx.lineWidth=2.5;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    {
+      const steps=180;
+      const P0 = P_int_S;
+      const Pstart = Math.max(0, P0);
+      const Pend = Math.max(Pstart, Pmax);
+      for(let i=0;i<=steps;i++){
+        const P = Pstart + (i/steps)*(Pend - Pstart);
+        const Q = Math.max(0, S0 + d*P);
+        const p = tmp.map(Q, P);
+        if(i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y);
+      }
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    // =====================================================
+    // Oferta con impuesto (vista desde consumidor): punteada
+    // Qs_tax(P) = S0 + d(P - t) = (S0 - d*t) + dP
+    // =====================================================
+    if (policyMode === "tax" && Number.isFinite(tax) && tax > 0){
+      const S0_tax = S0 - d*tax;
+
+      ctx.save();
+      ctx.strokeStyle = "#1a7f37";
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([10,8]);
+
+      ctx.beginPath();
+      {
+        const steps=180;
+
+        // Intercepto en Q=0: 0 = S0_tax + dP  =>  P0 = -S0_tax/d
+        const P0_tax = (-S0_tax) / d;
+
+        const Pstart = Math.max(0, P0_tax);
+        const Pend = Math.max(Pstart, Pmax);
+
+        for(let i=0;i<=steps;i++){
+          const P = Pstart + (i/steps)*(Pend - Pstart);
+          const Q = Math.max(0, S0_tax + d*P);
+          const p = tmp.map(Q, P);
+          if(i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y);
+        }
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // ===== Etiquetas de cortes con ejes (se mantiene TU bloque tal cual) =====
+
+    // ===== Escala conjunta para dibujar =====
+    
+    // ===== Etiquetas de cortes con ejes (para excedentes) =====
+    (function drawAxisInterceptLabels(){
+      // Cortes (valores “teóricos”)
+      const Pd0 = A / b;              // Demanda en Q=0 (precio de reserva)
+      const Qd0 = A;                  // Demanda en P=0
+      const Ps0 = (c - shiftS) / d;   // Oferta en Q=0 (precio mínimo / arranque)
+      const Qs0 = S0;                 // Oferta en P=0
+
+      // Para dibujar sin salirse del lienzo (capados al rango visible)
+      const Pd0_draw = Math.max(0, Math.min(Pd0, Pmax));
+      const Ps0_draw = Math.max(0, Math.min(Ps0, Pmax));
+      const Qd0_draw = Math.max(0, Math.min(Qd0, Qmax));
+      const Qs0_draw = Math.max(0, Math.min(Qs0, Qmax));
+
+      // P-axis (x=0): puntos (0,Pd0) y (0,Ps0)
+      const pD = tmp.map(0, Pd0_draw);
+      const pS = tmp.map(0, Ps0_draw);
+
+      // Q-axis (y=0): puntos (Qd0,0) y (Qs0,0)
+      const qD = tmp.map(Qd0_draw, 0);
+      const qS = tmp.map(Qs0_draw, 0);
+
+      // Demanda: corte eje P
+      if (Number.isFinite(Pd0) && Pd0_draw <= Pmax + 1e-9){
+        drawPoint(ctx, pD.x, pD.y);
+        drawLabel(ctx, canvas, `Demanda: P̄ = ${Pd0.toFixed(2)} €`, pD.x - 10, pD.y - 10, "base");
+      }
+
+      // Demanda: corte eje Q
+      if (Number.isFinite(Qd0) && Qd0_draw <= Qmax + 1e-9){
+        drawPoint(ctx, qD.x, qD.y);
+        drawLabel(ctx, canvas, `Demanda: Q̄ = ${Qd0.toFixed(2)} uds`, qD.x, qD.y + 22, "base");
+      }
+
+      // Oferta: corte eje P (si cae en P>=0)
+      if (Number.isFinite(Ps0) && Ps0 >= 0 && Ps0_draw <= Pmax + 1e-9){
+        drawPoint(ctx, pS.x, pS.y);
+        drawLabel(ctx, canvas, `Oferta: P₀ = ${Ps0.toFixed(2)} €`, pS.x - 10, pS.y + 10, "base");
+      } else if (Number.isFinite(Ps0) && Ps0 < 0){
+        // opcional: avisito didáctico (si no lo quieres, bórralo)
+        // drawLabel(ctx, canvas, `Oferta: P₀ < 0 (no visible)`, tmp.x0 + 90, tmp.y0 - 25, "base");
+      }
+
+      // Oferta: corte eje Q (si Qs0>=0; si es <0 queda recortado y no tiene sentido etiquetar en el eje)
+      if (Number.isFinite(Qs0) && Qs0 > 0){
+        drawPoint(ctx, qS.x, qS.y);
+        drawLabel(ctx, canvas, `Oferta: Q₀ = ${Qs0.toFixed(2)} uds`, qS.x, qS.y + 40, "base");
+      }
+    })();
+
+    // Punto equilibrio + guías punteadas + sombreado EC/EP
+          // ===== Punto escenario + guías + sombreado EC/EP (+ Pmax si procede) =====
+    (function drawScenario(){
+      const inScenario = (Number.isFinite(eqP) && Number.isFinite(eqQ) && eqP >= 0 && eqQ >= 0);
+      if (!inScenario) return;
+
+      //const pe = tmp.map(eqQ, eqP);
+      const Pplot = (policyMode === "taxC" && Number.isFinite(Pp)) ? Pp : eqP;
+      const pe = tmp.map(eqQ, Pplot);
+
+      // ===== bindings robustos (evita ReferenceError si no existen variables auxiliares) =====
+      const _isPmax = (policyMode === "pmax" && Number.isFinite(pmax));
+      const _isPmin = (policyMode === "pmin" && Number.isFinite(pmin));
+
+      const _isBindingMax = _isPmax && Number.isFinite(Pstar) && (pmax < Pstar);
+      const _isBindingMin = _isPmin && Number.isFinite(Pstar) && (pmin > Pstar);
+
+      // ===== Mostrar equilibrio competitivo original como referencia =====
+      // ===== Mostrar P* y Q* (solo hasta el punto, sin cruceta) =====
+      // ===== Mostrar equilibrio competitivo original como referencia =====
+      // ===== Mostrar P* y Q* (solo hasta el punto, sin cruceta) =====
+      if ((_isBindingMax || _isBindingMin) && Number.isFinite(Pstar) && Number.isFinite(Qstar)) {
+
+        const pStarPoint = tmp.map(Qstar, Pstar); // (Q*,P*)
+        const pStarAxis  = tmp.map(0, Pstar);     // (0,P*)
+        const qStarAxis  = tmp.map(Qstar, 0);     // (Q*,0)
+
+        ctx.save();
+        ctx.setLineDash([4,4]);
+        ctx.strokeStyle = "rgba(0,0,0,0.35)";
+        ctx.lineWidth = 1.2;
+
+        // P*: del eje Y al punto (Q*,P*)
+        ctx.beginPath();
+        ctx.moveTo(pStarAxis.x, pStarAxis.y);
+        ctx.lineTo(pStarPoint.x, pStarPoint.y);
+        ctx.stroke();
+
+        // Q*: del eje X al punto (Q*,P*)
+        ctx.beginPath();
+        ctx.moveTo(qStarAxis.x, qStarAxis.y);
+        ctx.lineTo(pStarPoint.x, pStarPoint.y);
+        ctx.stroke();
+
+        ctx.restore();
+
+        drawLabel(ctx, canvas, `P*=${Pstar.toFixed(2)} €`, pStarAxis.x - 10, pStarAxis.y - 10, "base");
+        drawLabel(ctx, canvas, `Q*=${Qstar.toFixed(2)} uds`, qStarAxis.x, qStarAxis.y + 22, "base");
+      }
+
+      // 1) Guías punteadas hasta ejes
+      ctx.save();
+      ctx.setLineDash([8,6]);
+      ctx.strokeStyle = "rgba(0,0,0,0.55)";
+      ctx.lineWidth = 1.5;
+
+      const qAxis = tmp.map(eqQ, 0);
+      ctx.beginPath();
+      ctx.moveTo(qAxis.x, qAxis.y);
+      ctx.lineTo(pe.x, pe.y);
+      ctx.stroke();
+
+      const pAxis = tmp.map(0, Pplot);
+      ctx.beginPath();
+      ctx.moveTo(pAxis.x, pAxis.y);
+
+      // Si es Pmax o Pmin vinculante, alarga la línea horizontal
+      if ((policyMode === "pmax" && _isBindingMax) || (policyMode === "pmin" && _isBindingMin)){
+        ctx.lineTo(tmp.x0 + tmp.w, pAxis.y);
+      } else {
+        ctx.lineTo(pe.x, pe.y);
+      }
+
+      ctx.stroke();
+
+      // Etiquetas en ejes
+      const isPmax = (policyMode === "pmax" && Number.isFinite(pmax));
+      const isPmin = (policyMode === "pmin" && Number.isFinite(pmin));
+
+      const isBindingMax = isPmax && Number.isFinite(Pstar) && (pmax < Pstar);
+      const isBindingMin = isPmin && Number.isFinite(Pstar) && (pmin > Pstar);
+
+      // 👇 Ajuste: si es taxC, el “precio de equilibrio” que queremos leer en la guía es Pp
+      const qLbl = isBindingMax ? "Qs(Pmax)" : (isBindingMin ? "Qd(Pmin)" : "Q*");
+      const pLbl =
+        (policyMode === "taxC") ? "Pp" :
+        (isBindingMax ? "Pmax" : (isBindingMin ? "Pmin" : "P*"));
+
+      drawLabel(ctx, canvas, `${qLbl} = ${eqQ.toFixed(2)} uds`, qAxis.x, qAxis.y + 22);
+      drawLabel(ctx, canvas, `${pLbl} = ${Pplot.toFixed(2)} €`,  pAxis.x - 10, pAxis.y, "base"); 
+
+      // 2) Si es Pmax: línea horizontal + puntos Qs/Qd + escasez
+      if (policyMode === "pmax" && Number.isFinite(pmax)){
+        const tag = binding ? "Pmax (vinculante)" : "Pmax (no vinculante)";
+        // línea horizontal en Pmax
+        drawHLine(ctx, tmp, canvas, pmax, tag);
+
+        // solo si es vinculante tiene sentido mostrar Qd/Qs en Pmax
+        if (binding && Number.isFinite(Qd_max) && Number.isFinite(Qs_max)){
+          const pQs = tmp.map(Math.max(0, Qs_max), pmax);
+          const pQd = tmp.map(Math.max(0, Qd_max), pmax);
+
+          drawPoint(ctx, pQs.x, pQs.y);
+          
+          drawPoint(ctx, pQd.x, pQd.y);
+          
+          // =====================================================
+          // Punto en DEMANDA para Qs(Pmax) y guías a ejes
+          // =====================================================
+
+          // Cantidad transada (en vinculante): Qt = Qs(Pmax)
+          const Qt = Math.max(0, Qs_max);
+
+          // Precio en la DEMANDA cuando Q = Qt  =>  Q = A - bP  =>  P = (A - Q)/b
+          const P_d_at_Qt = (b !== 0) ? ((A - Qt) / b) : NaN;
+
+          if (Number.isFinite(P_d_at_Qt)){
+            const P_d_draw = Math.max(0, Math.min(P_d_at_Qt, Pmax)); // para que no se salga del canvas
+            const pDemandQt = tmp.map(Qt, P_d_draw);
+
+            // Punto sobre la demanda (en Qs(Pmax))
+            drawPoint(ctx, pDemandQt.x, pDemandQt.y);
+
+            // Guías: vertical hasta eje X y horizontal hasta eje Y (SIN formar cruceta rara)
+            ctx.save();
+            ctx.setLineDash([7,6]);
+            ctx.strokeStyle = "rgba(0,0,0,0.55)";
+            ctx.lineWidth = 1.5;
+
+            // Vertical: (Qt, 0) -> (Qt, P_d)
+            const qAxisQt = tmp.map(Qt, 0);
+            ctx.beginPath();
+            ctx.moveTo(qAxisQt.x, qAxisQt.y);
+            ctx.lineTo(pDemandQt.x, pDemandQt.y);
+            ctx.stroke();
+
+            // Horizontal: (0, P_d) -> (Qt, P_d)
+            const pAxisPd = tmp.map(0, P_d_draw);
+            ctx.beginPath();
+            ctx.moveTo(pAxisPd.x, pAxisPd.y);
+            ctx.lineTo(pDemandQt.x, pDemandQt.y);
+            ctx.stroke();
+
+            ctx.restore();
+
+            // Etiqueta en el eje de precios con el valor (esto es lo que quieres para calcular excedente)
+            drawLabel(ctx, canvas, `Pᴰ(Qs(Pmax)) = ${P_d_at_Qt.toFixed(2)} €`, tmp.x0 - 10, pAxisPd.y, "base");
+          }
+
+          // ===== Llevar Qd(Pmax) al eje X =====
+          const qdAxis = tmp.map(Math.max(0, Qd_max), 0); // punto en el eje Q
+
+          ctx.save();
+          ctx.setLineDash([6,6]);
+          ctx.strokeStyle = "rgba(0,0,0,0.45)";
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(qdAxis.x, qdAxis.y); // (Qd,0)
+          ctx.lineTo(pQd.x, pQd.y);       // (Qd,Pmax)
+          ctx.stroke();
+          ctx.restore();
+
+          // Etiqueta en el eje
+          drawLabel(ctx, canvas, `Qd(Pmax)=${Qd_max.toFixed(2)} uds`, qdAxis.x, qdAxis.y + 22, "base");
+
+          if (shortage > 0){
+            drawLabel(ctx, canvas, `⚠️Exceso de Demanda =${shortage.toFixed(2)} uds`, (pQs.x + pQd.x)/2, pQs.y + 36, "base");
+          }
+        }
+      }
+
+      // 2bis) Si es Pmin: línea horizontal + puntos Qd/Qs + exceso de oferta
+      // 2bis) Si es Pmin: línea horizontal + puntos Qd/Qs + exceso de oferta
+      if (policyMode === "pmin" && Number.isFinite(pmin)){
+        const tag = isBindingMin ? "Pmin (vinculante)" : "Pmin (no vinculante)";
+
+        // línea horizontal en Pmin + marca en eje P
+        drawHLine(ctx, tmp, canvas, pmin, tag, `Pmin = ${pmin.toFixed(2)} €`);
+
+        // solo si es vinculante tiene sentido mostrar Qd/Qs y exceso
+        if (_isBindingMin && Number.isFinite(Qd_min) && Number.isFinite(Qs_min)){
+          const Qt = Math.max(0, Qd_min); // cantidad transada
+
+          // puntos sobre la línea Pmin
+          const pQd = tmp.map(Math.max(0, Qd_min), pmin); // (Qd(Pmin), Pmin)  => transado
+          const pQs = tmp.map(Math.max(0, Qs_min), pmin); // (Qs(Pmin), Pmin)  => ofrecido
+
+          drawPoint(ctx, pQd.x, pQd.y);
+          drawPoint(ctx, pQs.x, pQs.y);
+
+          // ===== Llevar Qd(Pmin) al eje X =====
+          const qdAxis = tmp.map(Math.max(0, Qd_min), 0);
+          ctx.save();
+          ctx.setLineDash([6,6]);
+          ctx.strokeStyle = "rgba(0,0,0,0.45)";
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(qdAxis.x, qdAxis.y);
+          ctx.lineTo(pQd.x, pQd.y);
+          ctx.stroke();
+          ctx.restore();
+          drawLabel(ctx, canvas, `Qd(Pmin)=${Qd_min.toFixed(2)} uds`, qdAxis.x, qdAxis.y + 22, "base");
+
+          // ===== Llevar Qs(Pmin) al eje X =====
+          const qsAxis = tmp.map(Math.max(0, Qs_min), 0);
+          ctx.save();
+          ctx.setLineDash([6,6]);
+          ctx.strokeStyle = "rgba(0,0,0,0.45)";
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(qsAxis.x, qsAxis.y);
+          ctx.lineTo(pQs.x, pQs.y);
+          ctx.stroke();
+          ctx.restore();
+          drawLabel(ctx, canvas, `Qs(Pmin)=${Qs_min.toFixed(2)} uds`, qsAxis.x, qsAxis.y + 22, "base");
+
+          // =====================================================
+          // Punto en OFERTA para Qd(Pmin) y etiqueta Ps(Qd(Pmin))
+          // =====================================================
+          // Oferta inversa: Q = S0 + dP  => P = (Q - S0)/d
+          const P_s_at_Qt = (d !== 0) ? ((Qt - S0) / d) : NaN;
+
+          if (Number.isFinite(P_s_at_Qt)){
+            const P_s_draw = Math.max(0, Math.min(P_s_at_Qt, Pmax));
+            const pSupplyQt = tmp.map(Qt, P_s_draw);
+
+            // punto sobre la oferta
+            drawPoint(ctx, pSupplyQt.x, pSupplyQt.y);
+
+            // guías (solo horizontal al eje Y, no cruceta rara)
+            ctx.save();
+            ctx.setLineDash([7,6]);
+            ctx.strokeStyle = "rgba(0,0,0,0.55)";
+            ctx.lineWidth = 1.5;
+
+            const pAxisPs = tmp.map(0, P_s_draw);
+            ctx.beginPath();
+            ctx.moveTo(pAxisPs.x, pAxisPs.y);
+            ctx.lineTo(pSupplyQt.x, pSupplyQt.y);
+            ctx.stroke();
+
+            ctx.restore();
+
+            // etiqueta en eje precios (para calcular EP en modo pmin)
+            drawLabel(ctx, canvas, `Pˢ(Qd(Pmin)) = ${P_s_at_Qt.toFixed(2)} €`, tmp.x0 - 10, pAxisPs.y, "base");
+          }
+
+          // ===== Exceso de oferta =====
+          if (surplus > 0){
+            drawLabel(
+              ctx,
+              canvas,
+              `⚠️Exceso de Oferta = ${surplus.toFixed(2)} uds`,
+              (pQd.x + pQs.x) / 2,
+              pQd.y + 36,
+              "base"
+            );
+          }
+        }
+      }
+
+      // 3) Sombreado EC (triángulo)
+      // 3) Sombreado EC
+      if ((policyMode === "pmax" && _isBindingMax) || (policyMode === "pmin" && _isBindingMin)){
+        // EC = área entre demanda y el precio intervenido desde Q=0 hasta Q=Qt
+        const Qend = Math.max(0, eqQ);
+        const Pline = eqP;
+
+        ctx.save();
+        ctx.globalAlpha = 0.18;
+        ctx.fillStyle = "#1f5fd6";
+        ctx.beginPath();
+
+        // (0, Pline)
+        let p = tmp.map(0, Pline);
+        ctx.moveTo(p.x, p.y);
+
+        // demanda inversa P(Q) = (A - Q)/b
+        const steps = 80;
+        for (let i=0; i<=steps; i++){
+          const Q = (i/steps) * Qend;
+          const P = (A - Q) / b;
+          const pp = tmp.map(Q, Math.max(0, Math.min(P, Pmax)));
+          ctx.lineTo(pp.x, pp.y);
+        }
+
+        // (Qend, Pline)
+        p = tmp.map(Qend, Pline);
+        ctx.lineTo(p.x, p.y);
+
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+
+      } else {
+        // EC “normal” (competencia perfecta / no vinculante)
+        const Pd0_draw = Math.max(0, Math.min(Pd0, Pmax));
+        const pDemandIntercept = tmp.map(0, Pd0_draw);
+        const pAxis = tmp.map(0, eqP);
+        const pe = tmp.map(eqQ, eqP);
+
+        ctx.save();
+        ctx.globalAlpha = 0.18;
+        ctx.fillStyle = "#1f5fd6";
+        ctx.beginPath();
+        ctx.moveTo(pAxis.x, pAxis.y);                 // (0,eqP)
+        ctx.lineTo(pDemandIntercept.x, pDemandIntercept.y); // (0,Pd0)
+        ctx.lineTo(pe.x, pe.y);                       // (eqQ,eqP)
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // 4) Sombreado EP (triángulo)
+      // 4) Sombreado EP
+      if (policyMode === "pmin" && isBindingMin){
+        // EP = área entre Pmin y oferta hasta Qt
+        const Qt = Math.max(0, eqQ);
+        const Pline = eqP;
+
+        const Ps0_draw = Math.max(0, Math.min(Ps0, Pmax));
+        const pSupplyIntercept = tmp.map(0, Ps0_draw);
+
+        // oferta inversa P_s(Q) = (Q - S0)/d
+        const P_s_at_Qt = (d !== 0) ? ((Qt - S0) / d) : NaN;
+        const P_s_draw = Number.isFinite(P_s_at_Qt) ? Math.max(0, Math.min(P_s_at_Qt, Pmax)) : Ps0_draw;
+
+        ctx.save();
+        ctx.globalAlpha = 0.18;
+        ctx.fillStyle = "#1a7f37";
+        ctx.beginPath();
+
+        // (0, Pmin)
+        let p = tmp.map(0, Pline);
+        ctx.moveTo(p.x, p.y);
+
+        // (0, Ps0)
+        ctx.lineTo(pSupplyIntercept.x, pSupplyIntercept.y);
+
+        // recorrer oferta desde Q=0 hasta Q=Qt
+        const steps = 80;
+        for (let i=0; i<=steps; i++){
+          const Q = (i/steps) * Qt;
+          const P = (d !== 0) ? ((Q - S0) / d) : 0;
+          const pp = tmp.map(Q, Math.max(0, Math.min(P, Pmax)));
+          ctx.lineTo(pp.x, pp.y);
+        }
+
+        // (Qt, Pmin)
+        p = tmp.map(Qt, Pline);
+        ctx.lineTo(p.x, p.y);
+
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+
+      } 
+      // ===== EP con impuesto (triángulo bajo Pp) =====
+      if (policyMode === "tax" && Number.isFinite(tax) && tax > 0
+          && Number.isFinite(eqQ) && Number.isFinite(Pp)){
+
+        const Qt = Math.max(0, eqQ);
+        const Pp_draw = Math.max(0, Math.min(Pp, Pmax));
+        const Ps0_draw = Math.max(0, Math.min(Ps0, Pmax));
+
+        const pSupplyIntercept = tmp.map(0, Ps0_draw);
+        const pAxis = tmp.map(0, Pp_draw);
+        const pQt = tmp.map(Qt, Pp_draw);
+
+        ctx.save();
+        ctx.globalAlpha = 0.18;
+        ctx.fillStyle = "#1a7f37";
+        ctx.beginPath();
+        ctx.moveTo(pSupplyIntercept.x, pSupplyIntercept.y); // (0, Ps0)
+        ctx.lineTo(pAxis.x, pAxis.y);                       // (0, Pp)
+        ctx.lineTo(pQt.x, pQt.y);                           // (Qt, Pp)
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+      else {
+
+        // EP “normal” (triángulo competitivo / pmax)
+        const Ps0_draw = Math.max(0, Math.min(Ps0, Pmax));
+        const pSupplyIntercept = tmp.map(0, Ps0_draw);
+
+        ctx.save();
+        ctx.globalAlpha = 0.18;
+        ctx.fillStyle = "#1a7f37";
+        ctx.beginPath();
+        ctx.moveTo(pSupplyIntercept.x, pSupplyIntercept.y);
+        ctx.lineTo(pAxis.x, pAxis.y);
+        ctx.lineTo(pe.x, pe.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // =====================================================
+      // TAX: sombreado recaudación (rectángulo entre Pp y Pc)
+      // =====================================================
+      if ((policyMode === "tax" || policyMode === "taxC") && Number.isFinite(tax) && tax > 0
+          && Number.isFinite(eqQ) && Number.isFinite(Pc) && Number.isFinite(Pp)){
+
+        const Qt = Math.max(0, eqQ);
+
+        const Pc_draw = Math.max(0, Math.min(Pc, Pmax));
+        const Pp_draw = Math.max(0, Math.min(Pp, Pmax));
+
+        const topLeft    = tmp.map(0,  Pc_draw);
+        const bottomLeft = tmp.map(0,  Pp_draw);
+        const bottomRight= tmp.map(Qt, Pp_draw);
+        const topRight   = tmp.map(Qt, Pc_draw);
+
+        ctx.save();
+        ctx.globalAlpha = 0.28;
+        ctx.fillStyle = "rgba(80,80,80,1)";
+        ctx.beginPath();
+        ctx.moveTo(topLeft.x, topLeft.y);
+        ctx.lineTo(bottomLeft.x, bottomLeft.y);
+        ctx.lineTo(bottomRight.x, bottomRight.y);
+        ctx.lineTo(topRight.x, topRight.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+       
+      }
+
+      // 4bis) Sombreado PIE (triángulo de eficiencia)
+      // Solo en Pmax/Pmin vinculantes (Qt < Q*)
+      const _isTax = ((policyMode === "tax" || policyMode === "taxC") && Number.isFinite(tax) && tax > 0);
+
+      if ((_isBindingMax || _isBindingMin || _isTax) && Number.isFinite(Qstar) && Number.isFinite(eqQ) && eqQ < Qstar - 1e-9){
+
+        const Qt = Math.max(0, eqQ);
+
+        // Precios en Qt sobre demanda y oferta (inversas)
+        const Pd_at_Qt = (b !== 0) ? ((A - Qt) / b) : NaN;      // Demanda: Q = A - bP
+        const Ps_at_Qt = (d !== 0) ? ((Qt - S0) / d) : NaN;     // Oferta:  Q = S0 + dP
+
+        if (Number.isFinite(Pd_at_Qt) && Number.isFinite(Ps_at_Qt)){
+          const Pd_draw = Math.max(0, Math.min(Pd_at_Qt, Pmax));
+          const Ps_draw = Math.max(0, Math.min(Ps_at_Qt, Pmax));
+
+          const A1 = tmp.map(Qt, Pd_draw);
+          const B1 = tmp.map(Qt, Ps_draw);
+          const C1 = tmp.map(Qstar, Math.max(0, Math.min(Pstar, Pmax)));
+
+          // Triángulo PIE (entre demanda y oferta desde Qt hasta Q*)
+          ctx.save();
+          ctx.globalAlpha = 0.16;
+          ctx.fillStyle = "rgba(200,0,0,1)"; // se atenúa por globalAlpha
+          ctx.beginPath();
+          ctx.moveTo(A1.x, A1.y);
+          ctx.lineTo(C1.x, C1.y);
+          ctx.lineTo(B1.x, B1.y);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+
+          // Etiqueta opcional (si no la quieres, comenta estas líneas)
+          const cx = (A1.x + B1.x + C1.x) / 3;
+          const cy = (A1.y + B1.y + C1.y) / 3;
+          // drawLabel(ctx, canvas, `PIE = ${PIE.toFixed(2)} €`, cx, cy, "base");
+        }
+      }
+
+      // =====================================================
+      // TAX: cuña fiscal + etiquetas Pc/Pp
+      // =====================================================
+      if (policyMode === "tax" && Number.isFinite(tax) && tax > 0
+          && Number.isFinite(eqQ) && Number.isFinite(Pc) && Number.isFinite(Pp)){
+
+        // 1) Línea horizontal Pc (precio consumidor)
+        drawHLine(ctx, tmp, canvas, Pc, "Pc (consumidor)", `Pc = ${Pc.toFixed(2)} €`);
+
+        // 2) Tick + etiqueta Pp en eje P
+        const Pp_draw = Math.max(0, Math.min(Pp, Pmax));
+        const pAxisPp = tmp.map(0, Pp_draw);
+
+        ctx.save();
+        ctx.setLineDash([]);
+        ctx.strokeStyle = "rgba(0,0,0,0.75)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(tmp.x0 - 6, pAxisPp.y);
+        ctx.lineTo(tmp.x0 + 6, pAxisPp.y);
+        ctx.stroke();
+        ctx.restore();
+
+        drawLabel(ctx, canvas, `Pp = ${Pp.toFixed(2)} €`, tmp.x0 - 10, pAxisPp.y, "base");
+
+        // -----------------------------------------------------
+        // (A) Ordenada en el origen de la oferta con impuesto (Q=0)
+        // Oferta inversa con impuesto: P = (Q - S0)/d + tax
+        const Ps0_tax = (d !== 0) ? ((0 - S0) / d + tax) : NaN;
+        const Ps0_tax_draw = Number.isFinite(Ps0_tax) ? Math.max(0, Math.min(Ps0_tax, Pmax)) : NaN;
+
+        if (Number.isFinite(Ps0_tax_draw)) {
+          const pTaxIntercept = tmp.map(0, Ps0_tax_draw);
+
+          // punto en el eje P
+          ctx.save();
+          ctx.fillStyle = "rgba(0,0,0,0.75)";
+          ctx.beginPath();
+          ctx.arc(pTaxIntercept.x, pTaxIntercept.y, 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          // etiqueta (ajusta el texto si quieres)
+          drawLabel(ctx, canvas, `P + t = ${Ps0_tax.toFixed(2)} €`, pTaxIntercept.x - 10, pTaxIntercept.y - 10, "base");
+        }
+
+        // -----------------------------------------------------
+        // (B) Línea punteada horizontal de Pp (hasta Qt, para no recargar)
+        const Qt = Math.max(0, eqQ);
+        const xQt = tmp.map(Qt, 0).x;
+
+        ctx.save();
+        ctx.setLineDash([6, 6]);
+        ctx.strokeStyle = "rgba(0,0,0,0.55)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(tmp.x0, pAxisPp.y); // desde el eje Y
+        ctx.lineTo(xQt, pAxisPp.y);    // hasta Qt
+        ctx.stroke();
+        ctx.restore();
+
+        // 3) Cuña fiscal vertical en Q = Qt (eqQ)
+        const Pc_draw = Math.max(0, Math.min(Pc, Pmax));
+        const yPc = tmp.map(0, Pc_draw).y;
+        const yPp = tmp.map(0, Pp_draw).y;
+
+        ctx.save();
+        ctx.setLineDash([]);
+        ctx.strokeStyle = "rgba(0,0,0,0.70)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(xQt, yPc);
+        ctx.lineTo(xQt, yPp);
+        ctx.stroke();
+        ctx.restore();
+
+        // drawLabel(ctx, canvas, `t = ${tax.toFixed(2)} €`, xQt + 20, (yPc + yPp)/2, "base");
+      }
+
+      // =====================================================
+      // TAXC: guía Pc (etiqueta en eje + punteada hasta Qt)
+      //      + guía Pp (punteada hasta Qt)
+      //      + cuña fiscal vertical en Qt
+      // =====================================================
+      if (policyMode === "taxC" && Number.isFinite(tax) && tax > 0
+          && Number.isFinite(eqQ) && Number.isFinite(Pc) && Number.isFinite(Pp)){
+
+        const Qt = Math.max(0, eqQ);
+        const xQt = tmp.map(Qt, 0).x;
+
+        // --- Pc (precio pagado): etiqueta en eje + punteada hasta Qt ---
+        const Pc_draw = Math.max(0, Math.min(Pc, Pmax));
+        const yPc = tmp.map(0, Pc_draw).y;
+
+        // tick Pc en eje P
+        ctx.save();
+        ctx.setLineDash([]);
+        ctx.strokeStyle = "rgba(0,0,0,0.75)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(tmp.x0 - 6, yPc);
+        ctx.lineTo(tmp.x0 + 6, yPc);
+        ctx.stroke();
+        ctx.restore();
+
+        // etiqueta Pc en eje P
+        drawLabel(ctx, canvas, `Pc = ${Pc.toFixed(2)} €`, tmp.x0 - 10, yPc, "base");
+
+        // línea punteada Pc desde eje Y hasta Qt
+        ctx.save();
+        ctx.setLineDash([8,6]);
+        ctx.strokeStyle = "rgba(0,0,0,0.55)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(tmp.x0, yPc);
+        ctx.lineTo(xQt, yPc);
+        ctx.stroke();
+        ctx.restore();
+
+        // --- Pp (precio recibido): etiqueta en eje + punteada hasta Qt (esta es la que “se extiende”) ---
+        const Pp_draw = Math.max(0, Math.min(Pp, Pmax));
+        const yPp = tmp.map(0, Pp_draw).y;
+
+        // tick Pp en eje P
+        ctx.save();
+        ctx.setLineDash([]);
+        ctx.strokeStyle = "rgba(0,0,0,0.75)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(tmp.x0 - 6, yPp);
+        ctx.lineTo(tmp.x0 + 6, yPp);
+        ctx.stroke();
+        ctx.restore();
+
+        // etiqueta Pp en eje P
+        drawLabel(ctx, canvas, `Pp = ${Pp.toFixed(2)} €`, tmp.x0 - 10, yPp, "base");
+
+        // línea punteada Pp desde eje Y hasta Qt  ✅ (la que quieres que se extienda)
+        ctx.save();
+        ctx.setLineDash([6,6]);
+        ctx.strokeStyle = "rgba(0,0,0,0.55)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(tmp.x0, yPp);
+        ctx.lineTo(tmp.x0 + tmp.w, yPp);
+        ctx.stroke();
+        ctx.restore();
+
+        // --- cuña fiscal vertical en Qt (entre Pp y Pc) ---
+        ctx.save();
+        ctx.setLineDash([]);
+        ctx.strokeStyle = "rgba(0,0,0,0.70)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(xQt, yPc);
+        ctx.lineTo(xQt, yPp);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 5) Punto + etiqueta final
+      drawPoint(ctx, pe.x, pe.y);
+      const tagE =
+        (policyMode==="pmax" && binding) ? "E*(Pmax)" :
+        (policyMode==="pmin" && _isBindingMin) ? "E*(Pmin)" :
+        (policyMode==="tax"  && Number.isFinite(tax) && tax > 0) ? "E*(tax)" :
+        (policyMode==="taxC" && Number.isFinite(tax) && tax > 0) ? "E*(taxC)" :
+        "E*";
+
+      // 👇 Precio a mostrar en la etiqueta del equilibrio
+      const P_label = (policyMode === "taxC" && Number.isFinite(Pp)) ? Pp : eqP;
+
+      drawLabel(
+        ctx,
+        canvas,
+        `${tagE}: (Q=${eqQ.toFixed(2)} uds, P=${P_label.toFixed(2)} €)`,
+        pe.x + 130,
+        pe.y - 18
+      );
+    })();
+  }
+
+  // ===== Informe / Guardar / Imprimir =====
+  function buildReport(){
+    if (!lastResult){
+      return "No hay resultados todavía.\n\nRellena parámetros (a,b,c,d) y vuelve a calcular.";
+    }
+
+    const r = lastResult;
+
+    const mode = r.mode || "none";
+
+    const fmtUds = (x, k=2) => Number.isFinite(x) ? `${x.toFixed(k)} uds` : "—";
+    const fmtEur = (x, k=2) => Number.isFinite(x) ? `${x.toFixed(k)} €` : "—";
+    const fmtNum = (x, k=2) => Number.isFinite(x) ? x.toFixed(k) : "—";
+
+    // ===== Escenario BASE (sin desplazamientos): ΔQd=0, ΔQs=0 =====
+    function computeBase(){
+      const a0 = r.a;
+      const b0 = r.b;
+      const c0 = r.c;
+      const d0 = r.d;
+
+      const denom = (b0 + d0);
+      if (!Number.isFinite(denom) || Math.abs(denom) < 1e-12) return null;
+
+      // Demanda base: Qd = a - bP  => A0=a
+      const A0  = a0;
+
+      // Oferta base: Qs = -c + dP => S00 = -c
+      const S00 = (-c0);
+
+      const P0 = (A0 - S00) / denom;
+      const Q0 = A0 - b0 * P0;
+
+      const inQuad = (Number.isFinite(P0) && Number.isFinite(Q0) && P0 >= 0 && Q0 >= 0);
+
+      // Precios de corte para excedentes
+      const Pd0 = A0 / b0;     // demanda: Q=0
+      const Ps0 = c0 / d0;     // oferta: Q=0  (porque 0 = -c + dP => P=c/d)
+
+      const EC0 = inQuad ? Math.max(0, 0.5 * Q0 * (Pd0 - P0)) : NaN;
+      const EP0 = inQuad ? Math.max(0, 0.5 * Q0 * (P0 - Ps0)) : NaN;
+      const ET0 = (Number.isFinite(EC0) && Number.isFinite(EP0)) ? (EC0 + EP0) : NaN;
+
+      return { A0, S00, P0, Q0, Pd0, Ps0, EC0, EP0, ET0, inQuad };
+    }
+
+    const base = computeBase();
+
+    // ===== Actual (con desplazamientos) =====
+    const inQuadrant = (r.Pstar >= 0 && r.Qstar >= 0);
+
+    // Ganancia de bienestar (GB) vs base (sin desplazamientos)
+    // - Si ET actual > ET base -> GB positiva
+    // - Si ET actual < ET base -> GB = 0 y lo reflejamos como "pérdida vs base"
+    let deltaET = NaN, GB = NaN, lossVsBase = NaN;
+    if (base && Number.isFinite(base.ET0) && Number.isFinite(r.ET)){
+      deltaET = r.ET - base.ET0;
+      GB = Math.max(0, deltaET);
+      lossVsBase = Math.max(0, -deltaET);
+    }
+
+    // Ecuaciones en forma clara
+    const eqDemand = `Qd = (a + ΔQd) − bP
+  A = a + ΔQd = ${fmtNum(r.a,2)} + ${fmtNum(r.shiftD,2)} = ${fmtNum(r.A,2)}
+  ⇒ Qd = ${fmtNum(r.A,2)} − ${fmtNum(r.b,2)}P`;
+
+    const eqSupply = `Qs = −c + dP + ΔQs
+  S0 = −c + ΔQs = −(${fmtNum(r.c,2)}) + ${fmtNum(r.shiftS,2)} = ${fmtNum(r.S0,2)}
+  ⇒ Qs = ${fmtNum(r.S0,2)} + ${fmtNum(r.d,2)}P`;
+
+    // Resolución paso a paso (mercado libre)
+    const denom = (r.b + r.d);
+    const solveSteps =
+  `Igualamos: Qd = Qs
+
+  ${fmtNum(r.A,2)} − ${fmtNum(r.b,2)}P = ${fmtNum(r.S0,2)} + ${fmtNum(r.d,2)}P
+
+  ${fmtNum(r.A - r.S0,2)} = ${fmtNum(r.b + r.d,2)}P
+
+  P* = ${fmtNum(r.A - r.S0,2)} / ${fmtNum(denom,2)} = ${fmtEur(r.Pstar,2)}
+
+  Q* = ${fmtNum(r.A,2)} − ${fmtNum(r.b,2)}·(${fmtNum(r.Pstar,2)})
+  Q* = ${fmtUds(r.Qstar,2)}`;
+
+    // Interpretación automática
+    let interpretation = "";
+    if (!inQuadrant){
+      interpretation =
+  `Interpretación:
+  El cruce cae fuera del primer cuadrante (P*<0 o Q*<0). 
+  Con estos parámetros, no hay un equilibrio económicamente válido en el rango (P≥0, Q≥0).`;
+    } else {
+      interpretation =
+  `Interpretación:
+  En Competencia Perfecta, el equilibrio se sitúa en P* = ${fmtEur(r.Pstar,2)} y Q* = ${fmtUds(r.Qstar,2)}.
+  A este precio, la cantidad demandada coincide con la ofrecida (no hay exceso de demanda ni de oferta).`;
+    }
+
+    // Bienestar y eficiencia (en mercado libre, PIE “por intervención” es 0)
+    const welfare =
+  `Bienestar (en €):
+  EC = ${fmtEur(r.EC,2)}
+  EP = ${fmtEur(r.EP,2)}
+  ET = ${fmtEur(r.ET,2)}
+  PIE = ${fmtEur(r.PIE,2)}`;
+
+    // Comparativa base vs actual (para tu “Ganancia de Bienestar”)
+    let compareBlock = "";
+    if (base && base.inQuad && Number.isFinite(base.ET0)){
+      compareBlock =
+  `Comparativa (BASE sin desplazamientos vs ACTUAL con Δ):
+  BASE (ΔQd=0, ΔQs=0):
+  P0 = ${fmtEur(base.P0,2)} · Q0 = ${fmtUds(base.Q0,2)} · ET0 = ${fmtEur(base.ET0,2)}
+
+  ACTUAL (con ΔQd, ΔQs):
+  P* = ${fmtEur(r.Pstar,2)} · Q* = ${fmtUds(r.Qstar,2)} · ET = ${fmtEur(r.ET,2)}
+
+  Cambio en bienestar:
+  ΔET = ${fmtEur(deltaET,2)}
+  Ganancia de bienestar (GB) = ${fmtEur(GB,2)}
+  Pérdida vs base = ${fmtEur(lossVsBase,2)}`;
+    } else {
+      compareBlock =
+  `Comparativa base:
+  No se puede calcular (la base cae fuera del primer cuadrante o faltan datos).`;
+    }
+
+    // Cierre didáctico
+    const concl =
+  `Conclusión:
+  - ΔQd>0 (más demanda) suele elevar P* y Q*.
+  - ΔQs>0 (más oferta) tiende a bajar P* y subir Q*.
+  - En Competencia Perfecta sin intervención, el equilibrio es eficiente (PIE = 0)`;
+
+    if (mode === "none") {
+
+      return (
+    `LABORATORIO DE SIMULADORES – EQUILIBRIO (Competencia Perfecta)
+    ======================================================
+
+    1) Modelo (con unidades)
+    ------------------------
+    Precio: P en €
+    Cantidad: Q en uds
+
+    ${eqDemand}
+
+    ${eqSupply}
+
+    2) Cálculo del equilibrio (paso a paso)
+    ---------------------------------------
+    ${solveSteps}
+
+    3) Resultados
+    -------------
+    P* = ${fmtEur(r.Pstar,2)}
+    Q* = ${fmtUds(r.Qstar,2)}
+
+    4) Bienestar
+    ------------
+    ${welfare}
+
+    5) Ganancia de bienestar (GB) y comparación con base
+    ----------------------------------------------------
+    ${compareBlock}
+
+    6) Interpretación y cierre
+    --------------------------
+    ${interpretation}
+
+    ${concl}
+    `
+      );
+    }
+
+    if (mode === "pmax") {
+
+      const binding = r.binding;
+
+      const header =
+    `LABORATORIO DE SIMULADORES – PRECIO MÁXIMO (Competencia Perfecta)
+    ======================================================`;
+
+      if (!binding){
+        return (
+    `${header}
+
+    1) Diagnóstico
+    --------------
+    Pmax = ${fmtEur(r.pmax,2)}
+
+    El precio máximo NO es vinculante (Pmax ≥ P*).
+
+    2) Resultado
+    ------------
+    P* = ${fmtEur(r.Pstar,2)}
+    Q* = ${fmtUds(r.Qstar,2)}
+
+    3) Bienestar
+    ------------
+    EC = ${fmtEur(r.EC,2)}
+    EP = ${fmtEur(r.EP,2)}
+    ET = ${fmtEur(r.ET,2)}
+    PIE = 0.00 €
+
+    Interpretación:
+    El precio máximo se sitúa por encima del equilibrio competitivo, por lo que no afecta al mercado.`
+        );
+      }
+
+      return (
+    `${header}
+
+    1) Precio regulado
+    ------------------
+    Pmax = ${fmtEur(r.pmax,2)}
+
+    Qd(Pmax) = ${fmtUds(r.Qd_max,2)}
+    Qs(Pmax) = ${fmtUds(r.Qs_max,2)}
+
+    Cantidad intercambiada = Qs(Pmax)
+    Exceso de Demanda = ${fmtUds(r.shortage,2)}
+
+    2) Nuevo bienestar
+    ------------------
+    EC = ${fmtEur(r.EC,2)}
+    EP = ${fmtEur(r.EP,2)}
+    ET = ${fmtEur(r.ET,2)}
+
+    PIE = ${fmtEur(r.PIE,2)}
+
+    Interpretación:
+    El precio máximo es vinculante (Pmax < P*).
+    Se genera exceso de demanda.
+    La cantidad intercambiada se reduce a Qs(Pmax).
+    El mercado pierde eficiencia (PIE > 0)
+    El EC aumenta respecto al competitivo (de ${fmtEur(r.EC_star,2)} a ${fmtEur(r.EC,2)}), mientras que el EP se reduce (de ${fmtEur(r.EP_star,2)} a ${fmtEur(r.EP,2)}) 
+    Aunque algunos consumidores se benefician, la economía en su conjunto pierde bienestar.`
+      );
+    }
+
+    if (mode === "pmin") {
+
+      const bindingMin = r.bindingMin;
+
+      const header =
+    `LABORATORIO DE SIMULADORES – PRECIO MÍNIMO (Competencia Perfecta)
+    ======================================================`;
+
+      if (!bindingMin){
+        return (
+    `${header}
+
+    1) Diagnóstico
+    --------------
+    Pmin = ${fmtEur(r.pmin,2)}
+
+    El precio mínimo NO es vinculante (Pmin ≤ P*).
+
+    2) Resultado
+    ------------
+    P* = ${fmtEur(r.Pstar,2)}
+    Q* = ${fmtUds(r.Qstar,2)}
+
+    3) Bienestar
+    ------------
+    EC = ${fmtEur(r.EC,2)}
+    EP = ${fmtEur(r.EP,2)}
+    ET = ${fmtEur(r.ET,2)}
+    PIE = 0.00 €
+
+    Interpretación:
+    El precio mínimo se sitúa por debajo (o en) el equilibrio competitivo, por lo que no afecta al mercado.`
+        );
+      }
+
+      return (
+      `${header}
+
+      Equilibrio competitivo (referencia)
+      -----------------------------------
+      P* = ${fmtEur(r.Pstar,2)}
+      Q* = ${fmtUds(r.Qstar,2)}
+
+      1) Precio regulado
+      ------------------
+      Pmin = ${fmtEur(r.pmin,2)}
+      Diagnóstico: vinculante (Pmin > P*), por tanto Qt = Qd(Pmin).
+
+      Qd(Pmin) = ${fmtUds(r.Qd_min,2)}
+      Qs(Pmin) = ${fmtUds(r.Qs_min,2)}
+
+      Cantidad intercambiada = Qd(Pmin)
+      Exceso de Oferta = ${fmtUds(r.surplus,2)}
+
+      2) Nuevo bienestar
+      ------------------
+      EC = ${fmtEur(r.EC,2)}
+      EP = ${fmtEur(r.EP,2)}
+      ET = ${fmtEur(r.ET,2)}
+
+      PIE = ${fmtEur(r.PIE,2)}
+      Comprobación: PIE = ET* − ET = ${fmtEur(r.ET_star,2)} − ${fmtEur(r.ET,2)} = ${fmtEur(r.PIE,2)}
+
+      3) Variación respecto al equilibrio competitivo
+      -----------------------------------------------
+      ΔEC = ${fmtEur(r.EC - r.EC_star,2)}
+      ΔEP = ${fmtEur(r.EP - r.EP_star,2)}
+      ΔET = ${fmtEur(r.ET - r.ET_star,2)}
+
+      Interpretación económica:
+      El precio mínimo es vinculante (Pmin > P*).
+      El precio se sitúa por encima del nivel competitivo y la cantidad intercambiada se reduce a Qd(Pmin).
+
+      En las unidades efectivamente intercambiadas se produce una transferencia de bienestar desde los consumidores hacia los productores (ΔEC < 0, ΔEP puede ser > 0).
+
+      Sin embargo, la reducción de la cantidad intercambiada genera una Pérdida Irrecuperable de Eficiencia (PIE > 0), lo que implica que el bienestar total del mercado disminuye.`
+      );
+    }
+
+        if (mode === "tax") {
+
+          const header =
+    `LABORATORIO DE SIMULADORES – IMPUESTO ESPECÍFICO (a productores) – Competencia Perfecta
+    ======================================================`;
+
+          // Si por lo que sea no está “activo”
+          if (!r.bindingTax || !Number.isFinite(r.tax) || r.tax <= 0){
+            return (
+    `${header}
+
+    1) Diagnóstico
+    --------------
+    t = ${fmtEur(r.tax,2)}
+
+    El impuesto no está activo (t ≤ 0 o sin valor).
+    El equilibrio coincide con el competitivo.
+
+    2) Resultado
+    ------------
+    P* = ${fmtEur(r.Pstar,2)}
+    Q* = ${fmtUds(r.Qstar,2)}
+    `
+            );
+          }
+
+          return (
+    `${header}
+
+    Equilibrio competitivo (referencia)
+    -----------------------------------
+    P* = ${fmtEur(r.Pstar,2)}
+    Q* = ${fmtUds(r.Qstar,2)}
+
+    1) Impuesto
+    -----------
+    t = ${fmtEur(r.tax,2)} por unidad (aplicado a productores)
+
+    2) Nuevo equilibrio con impuesto
+    --------------------------------
+    Precio pagado por consumidores: Pc = ${fmtEur(r.Pc,2)}
+    Precio recibido por productores: Pp = ${fmtEur(r.Pp,2)}
+    Cantidad intercambiada: Qt = ${fmtUds(r.Qt_tax,2)}
+
+    3) Recaudación pública
+    ----------------------
+    Ingreso público = t · Qt  = ${fmtEur(r.revenue,2)}
+
+    4) Bienestar (en €)
+    -------------------
+    EC = ${fmtEur(r.EC,2)}
+    EP = ${fmtEur(r.EP,2)}
+    ET = EC + EP + IP = ${fmtEur(r.ET,2)}
+    PIE = ${fmtEur(r.PIE,2)}
+
+    Comprobación rápida:
+    PIE = 1/2 · t · (Q* − Qt) = 0.5 · ${fmtNum(r.tax,2)} · (${fmtNum(r.Qstar,2)} − ${fmtNum(r.Qt_tax,2)})
+    `
+          );
+        }
+        
+        if (mode === "taxC") {
+
+          const header =
+        `LABORATORIO DE SIMULADORES – IMPUESTO ESPECÍFICO (a consumidores) – Competencia Perfecta
+        ======================================================`;
+
+          // Si por lo que sea no está “activo”
+          if (!r.bindingTax || !Number.isFinite(r.tax) || r.tax <= 0){
+            return (
+        `${header}
+
+        1) Diagnóstico
+        --------------
+        t = ${fmtEur(r.tax,2)}
+
+        El impuesto no está activo (t ≤ 0 o sin valor).
+        El equilibrio coincide con el competitivo.
+
+        2) Resultado
+        ------------
+        P* = ${fmtEur(r.Pstar,2)}
+        Q* = ${fmtUds(r.Qstar,2)}
+        `
+            );
+          }
+
+          return (
+        `${header}
+
+        Equilibrio competitivo (referencia)
+        -----------------------------------
+        P* = ${fmtEur(r.Pstar,2)}
+        Q* = ${fmtUds(r.Qstar,2)}
+
+        1) Impuesto
+        -----------
+        t = ${fmtEur(r.tax,2)} por unidad (aplicado a consumidores)
+
+        2) Nuevo equilibrio con impuesto
+        --------------------------------
+        Precio pagado por consumidores: Pc = ${fmtEur(r.Pc,2)}
+        Precio recibido por productores: Pp = ${fmtEur(r.Pp,2)}
+        Cantidad intercambiada: Qt = ${fmtUds(r.Qt_tax,2)}
+
+        3) Recaudación pública
+        ----------------------
+        Ingreso público = t · Qt  = ${fmtEur(r.revenue,2)}
+
+        4) Bienestar (en €)
+        -------------------
+        EC = ${fmtEur(r.EC,2)}
+        EP = ${fmtEur(r.EP,2)}
+        ET = EC + EP + IP = ${fmtEur(r.ET,2)}
+        PIE = ${fmtEur(r.PIE,2)}
+
+        Comprobación rápida:
+        PIE = 1/2 · t · (Q* − Qt) = 0.5 · ${fmtNum(r.tax,2)} · (${fmtNum(r.Qstar,2)} − ${fmtNum(r.Qt_tax,2)})
+        `
+          );
+        }
+
+        // Ingreso público = t · Qt = ${fmtEur(r.revenue,2)}
+
+        // 🔒 Fallback: por si aparece un modo nuevo en el futuro
+        return "Informe no disponible para este modo todavía.";
+
+      }
+
+  function downloadText(text, filename){
+    const blob = new Blob([text], {type:"text/plain;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function printCanvas(canvas, title){
+    const dataUrl = canvas.toDataURL("image/png");
+
+    // abrir ventana completamente vacía sin contenido live-server
+    const w = window.open("about:blank", "_blank");
+    if (!w) return;
+
+    const doc = w.document;
+
+    // construir DOM desde cero
+    const html = doc.createElement("html");
+    const head = doc.createElement("head");
+    const body = doc.createElement("body");
+
+    doc.replaceChild(html, doc.documentElement);
+    html.appendChild(head);
+    html.appendChild(body);
+
+    const meta = doc.createElement("meta");
+    meta.charset = "utf-8";
+    head.appendChild(meta);
+
+    const style = doc.createElement("style");
+    style.textContent =
+      "body{font-family:system-ui,sans-serif;margin:20px;}" +
+      "h1{font-size:18px;margin:0 0 12px;}" +
+      "img{width:100%;max-width:1000px;border:1px solid #ccc;border-radius:12px;}";
+    head.appendChild(style);
+
+    const h1 = doc.createElement("h1");
+    h1.textContent = title;
+
+    const img = doc.createElement("img");
+    img.src = dataUrl;
+
+    body.appendChild(h1);
+    body.appendChild(img);
+
+    img.onload = () => w.print();
+  }
+
+  // =========================
+  // Botones Equilibrio: informe / guardar / imprimir
+  // (colocar ANTES del Router de vistas)
+  // =========================
+  if (el("btnReport")){
+    el("btnReport").addEventListener("click", () => {
+      const t = buildReport();
+      const box = el("reportBox");
+      if (box) box.value = t;
+    });
+  }
+
+  if (el("btnClearReport")){
+    el("btnClearReport").addEventListener("click", () => {
+      const box = el("reportBox");
+      if (box) box.value = "";
+    });
+  }
+
+  if (el("btnSaveReport")){
+    el("btnSaveReport").addEventListener("click", () => {
+      const t = buildReport();
+      const box = el("reportBox");
+      if (box) box.value = t;
+      const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
+      downloadText(t, `informe-equilibrio-${stamp}.txt`);
+    });
+  }
+
+  if (el("btnPrintGraph")){
+    el("btnPrintGraph").addEventListener("click", () => {
+      const cv = el("cvE");
+      if (cv) printCanvas(cv, "Equilibrio – Gráfica");
+    });
+  }
+
+  // =========================
+  // Router de vistas (tabs)
+  // =========================
+  const btns = document.querySelectorAll(".tabBtn");
+  const views = document.querySelectorAll(".view");
+
+  function show(id){
+    views.forEach(v => v.classList.toggle("active", v.id === id));
+    btns.forEach(b => b.classList.toggle("active", b.dataset.view === id));
+    // re-render por si el canvas ha cambiado de tamaño al mostrarse
+    renderDemand();
+    renderSupply();
+    renderEq();
+  }
+
+  btns.forEach(b => b.addEventListener("click", () => show(b.dataset.view)));
+
+  // =========================
+  // Resets
+  // =========================
+  el("resetD").addEventListener("click",()=>{
+    el("aD").value="";
+    el("bD").value="";
+    el("alphaD").value="—";
+
+    el("incomeQuickD").value=0;
+    el("goodTypeD").value="normal";
+    el("tastesQuickD").value=0;
+    el("expectQuickD").value=0;
+    el("relatedQuickD").value=0;
+
+    el("dYD").value="";
+    el("kYD").value="";
+    el("PotherD").value="";
+    el("kOtherD").value="";
+
+    el("dqD").textContent="ΔQd = 0";
+    el("dqBreakD").textContent="—";
+    el("readD").textContent="Introduce a y b para activar la curva.";
+
+    renderDemand(); renderEq();
+  });
+
+  el("resetS").addEventListener("click",()=>{
+    el("cS").value="";
+    el("dS").value="";
+    el("betaS").value="—";
+
+    el("costQuickS").value=0;
+    el("techQuickS").value=0;
+    el("sellersQuickS").value=0;
+    el("expectQuickS").value=0;
+
+    el("dCS").value="";
+    el("kCS").value="";
+    el("dTS").value="";
+    el("kTS").value="";
+
+    el("dqsTotalS").textContent="ΔQs = 0";
+    el("dqsBreakS").textContent="—";
+    el("readS").textContent="Introduce c y d para activar la curva.";
+
+    renderSupply(); renderEq();
+  });
+
+  el("resetAll").addEventListener("click",()=>{
+    el("resetD").click();
+    el("resetS").click();
+
+    // Reset intervención
+    if (el("policyMode")) el("policyMode").value = "none";
+    if (el("pmaxVal")) el("pmaxVal").value = "";
+    if (el("pminVal")) el("pminVal").value = "";
+    if (el("taxVal")) el("taxVal").value = "";
+    if (el("taxCVal")) el("taxCVal").value = "";
+    toggleEqUI();
+
+    if (el("eqP")) el("eqP").value = "—";
+    if (el("eqQ")) el("eqQ").value = "—";
+    if (el("eqEC")) el("eqEC").value = "—";
+    if (el("eqEP")) el("eqEP").value = "—";
+    if (el("eqET")) el("eqET").value = "—";
+    if (el("eqPIE")) el("eqPIE").value = "—";
+    if (el("eqIP")) el("eqIP").value = "—";
+    el("readEq").textContent="Rellena parámetros en Demanda y Oferta para calcular el equilibrio.";
+
+    // Borrar informe también
+    const box = el("reportBox");
+    if (box) box.value = "";
+
+    renderEq();
+  });
+
+  // =========================
+  // Listeners globales: cualquier input afecta también al equilibrio
+  // =========================
+  document.querySelectorAll("input,select").forEach(node=>{
+    node.addEventListener("input",()=>{
+      // Render local + equilibrio (robusto y simple)
+      renderDemand();
+      renderSupply();
+      renderEq();
+
+      // 🧹 Borrar informe automáticamente
+      const box = el("reportBox");
+      if (box) box.value = "";
+
+    });
+  });
+
+  // Render inicial
+  renderDemand();
+  renderSupply();
+  renderEq();
+})();
+</script>
+
+</body>
+</html>
